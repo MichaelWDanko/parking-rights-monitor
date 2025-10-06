@@ -6,38 +6,33 @@
 	objectVersion = 77;
 	objects = {
 
-/* Begin PBXBuildFile section */
-		DAA404D02E84EC240066A8B1 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = DAA404CF2E84EC240066A8B1 /* README.md */; };
-/* End PBXBuildFile section */
-
 /* Begin PBXFileReference section */
-		DA4D26F92E84E67A00F41386 /* ParkingRightsMonitor.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ParkingRightsMonitor.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		DAA404CF2E84EC240066A8B1 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		DAA404DC2E921FD10066A8B1 /* PRMonitor.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PRMonitor.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		DA4D27062E84E67C00F41386 /* Exceptions for "ParkingRightsMonitor" folder in "ParkingRightsMonitor" target */ = {
+		DAA404E92E921FD20066A8B1 /* Exceptions for "PRMonitor" folder in "PRMonitor" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
-			target = DA4D26F82E84E67A00F41386 /* ParkingRightsMonitor */;
+			target = DAA404DB2E921FD10066A8B1 /* PRMonitor */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		DA4D26FB2E84E67A00F41386 /* ParkingRightsMonitor */ = {
+		DAA404DE2E921FD10066A8B1 /* PRMonitor */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				DA4D27062E84E67C00F41386 /* Exceptions for "ParkingRightsMonitor" folder in "ParkingRightsMonitor" target */,
+				DAA404E92E921FD20066A8B1 /* Exceptions for "PRMonitor" folder in "PRMonitor" target */,
 			);
-			path = ParkingRightsMonitor;
+			path = PRMonitor;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		DA4D26F62E84E67A00F41386 /* Frameworks */ = {
+		DAA404D92E921FD10066A8B1 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -47,19 +42,18 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		DA4D26F02E84E67A00F41386 = {
+		DAA404D32E921FD10066A8B1 = {
 			isa = PBXGroup;
 			children = (
-				DAA404CF2E84EC240066A8B1 /* README.md */,
-				DA4D26FB2E84E67A00F41386 /* ParkingRightsMonitor */,
-				DA4D26FA2E84E67A00F41386 /* Products */,
+				DAA404DE2E921FD10066A8B1 /* PRMonitor */,
+				DAA404DD2E921FD10066A8B1 /* Products */,
 			);
 			sourceTree = "<group>";
 		};
-		DA4D26FA2E84E67A00F41386 /* Products */ = {
+		DAA404DD2E921FD10066A8B1 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				DA4D26F92E84E67A00F41386 /* ParkingRightsMonitor.app */,
+				DAA404DC2E921FD10066A8B1 /* PRMonitor.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -67,75 +61,74 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		DA4D26F82E84E67A00F41386 /* ParkingRightsMonitor */ = {
+		DAA404DB2E921FD10066A8B1 /* PRMonitor */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = DA4D27072E84E67C00F41386 /* Build configuration list for PBXNativeTarget "ParkingRightsMonitor" */;
+			buildConfigurationList = DAA404EA2E921FD20066A8B1 /* Build configuration list for PBXNativeTarget "PRMonitor" */;
 			buildPhases = (
-				DA4D26F52E84E67A00F41386 /* Sources */,
-				DA4D26F62E84E67A00F41386 /* Frameworks */,
-				DA4D26F72E84E67A00F41386 /* Resources */,
+				DAA404D82E921FD10066A8B1 /* Sources */,
+				DAA404D92E921FD10066A8B1 /* Frameworks */,
+				DAA404DA2E921FD10066A8B1 /* Resources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				DA4D26FB2E84E67A00F41386 /* ParkingRightsMonitor */,
+				DAA404DE2E921FD10066A8B1 /* PRMonitor */,
 			);
-			name = ParkingRightsMonitor;
+			name = PRMonitor;
 			packageProductDependencies = (
 			);
-			productName = ParkingRightsMonitor;
-			productReference = DA4D26F92E84E67A00F41386 /* ParkingRightsMonitor.app */;
+			productName = PRMonitor;
+			productReference = DAA404DC2E921FD10066A8B1 /* PRMonitor.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		DA4D26F12E84E67A00F41386 /* Project object */ = {
+		DAA404D42E921FD10066A8B1 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 2600;
 				LastUpgradeCheck = 2600;
 				TargetAttributes = {
-					DA4D26F82E84E67A00F41386 = {
+					DAA404DB2E921FD10066A8B1 = {
 						CreatedOnToolsVersion = 26.0.1;
 					};
 				};
 			};
-			buildConfigurationList = DA4D26F42E84E67A00F41386 /* Build configuration list for PBXProject "ParkingRightsMonitor" */;
+			buildConfigurationList = DAA404D72E921FD10066A8B1 /* Build configuration list for PBXProject "PRMonitor" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
 				Base,
 			);
-			mainGroup = DA4D26F02E84E67A00F41386;
+			mainGroup = DAA404D32E921FD10066A8B1;
 			minimizedProjectReferenceProxies = 1;
 			preferredProjectObjectVersion = 77;
-			productRefGroup = DA4D26FA2E84E67A00F41386 /* Products */;
+			productRefGroup = DAA404DD2E921FD10066A8B1 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				DA4D26F82E84E67A00F41386 /* ParkingRightsMonitor */,
+				DAA404DB2E921FD10066A8B1 /* PRMonitor */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		DA4D26F72E84E67A00F41386 /* Resources */ = {
+		DAA404DA2E921FD10066A8B1 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				DAA404D02E84EC240066A8B1 /* README.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		DA4D26F52E84E67A00F41386 /* Sources */ = {
+		DAA404D82E921FD10066A8B1 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -145,101 +138,75 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		DA4D27082E84E67C00F41386 /* Debug */ = {
+		DAA404EB2E921FD20066A8B1 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = PRMonitor/PRMonitor.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = PD8DBCPLQ4;
-				ENABLE_APP_SANDBOX = YES;
-				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
-				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = ParkingRightsMonitor/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "PR Monitor";
-				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
-				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
-				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
-				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
-				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = YES;
-				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
-				INFOPLIST_KEY_UIStatusBarHidden = YES;
-				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
-				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
-				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
-				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				INFOPLIST_FILE = PRMonitor/Info.plist;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.michaelwdanko.ParkingRightsMonitor;
+				PRODUCT_BUNDLE_IDENTIFIER = com.michaelwdanko.PRMonitor;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				REGISTER_APP_GROUPS = YES;
-				SDKROOT = auto;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2,7";
-				XROS_DEPLOYMENT_TARGET = 26.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
 		};
-		DA4D27092E84E67C00F41386 /* Release */ = {
+		DAA404EC2E921FD20066A8B1 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = PRMonitor/PRMonitor.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = PD8DBCPLQ4;
-				ENABLE_APP_SANDBOX = YES;
-				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
-				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = ParkingRightsMonitor/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "PR Monitor";
-				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
-				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
-				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
-				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
-				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = YES;
-				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
-				INFOPLIST_KEY_UIStatusBarHidden = YES;
-				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
-				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
-				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
-				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				INFOPLIST_FILE = PRMonitor/Info.plist;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.michaelwdanko.ParkingRightsMonitor;
+				PRODUCT_BUNDLE_IDENTIFIER = com.michaelwdanko.PRMonitor;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				REGISTER_APP_GROUPS = YES;
-				SDKROOT = auto;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2,7";
-				XROS_DEPLOYMENT_TARGET = 26.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
 		};
-		DA4D270A2E84E67C00F41386 /* Debug */ = {
+		DAA404ED2E921FD20066A8B1 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -292,16 +259,18 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
 			name = Debug;
 		};
-		DA4D270B2E84E67C00F41386 /* Release */ = {
+		DAA404EE2E921FD20066A8B1 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -348,35 +317,38 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
 		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		DA4D26F42E84E67A00F41386 /* Build configuration list for PBXProject "ParkingRightsMonitor" */ = {
+		DAA404D72E921FD10066A8B1 /* Build configuration list for PBXProject "PRMonitor" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				DA4D270A2E84E67C00F41386 /* Debug */,
-				DA4D270B2E84E67C00F41386 /* Release */,
+				DAA404ED2E921FD20066A8B1 /* Debug */,
+				DAA404EE2E921FD20066A8B1 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		DA4D27072E84E67C00F41386 /* Build configuration list for PBXNativeTarget "ParkingRightsMonitor" */ = {
+		DAA404EA2E921FD20066A8B1 /* Build configuration list for PBXNativeTarget "PRMonitor" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				DA4D27082E84E67C00F41386 /* Debug */,
-				DA4D27092E84E67C00F41386 /* Release */,
+				DAA404EB2E921FD20066A8B1 /* Debug */,
+				DAA404EC2E921FD20066A8B1 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
-	rootObject = DA4D26F12E84E67A00F41386 /* Project object */;
+	rootObject = DAA404D42E921FD10066A8B1 /* Project object */;
 }
