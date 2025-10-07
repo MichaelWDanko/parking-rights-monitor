@@ -13,11 +13,20 @@ enum Environment : String, Codable {
     case development
 }
 
+struct Zone : Identifiable, Codable {
+    let id: UUID
+    let name: String
+    let number: String
+    let operator_id: UUID
+}
+
 struct Operator: Identifiable, Codable {
     let id: UUID
     let name: String
     
     let environment: Environment
+    
+    var zones = [Zone]()
     
     init(name: String) {
         self.id = UUID()
@@ -38,11 +47,3 @@ struct Operator: Identifiable, Codable {
         self.environment = environment
     }
 }
-
-let pleasantville = Operator(name: "City of Pleasantville")
-let zdanko = Operator(name: "zDanko Parking")
-let charlotte = Operator(name: "City of Charlotte, NC")
-
-var mockOperators: [Operator] = [pleasantville, zdanko, charlotte]
-
-
