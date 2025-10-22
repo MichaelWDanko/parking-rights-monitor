@@ -138,3 +138,5 @@ Temporary Items
 # API Keys and secrets (if any)
 Config.plist
 Secrets.plist
+**/Secrets.json
+!**/Secrets.example.json
