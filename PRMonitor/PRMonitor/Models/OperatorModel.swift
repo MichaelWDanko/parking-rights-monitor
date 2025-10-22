@@ -14,7 +14,7 @@ enum Environment : String, Codable {
 }
 
 struct Zone : Identifiable, Codable {
-    let id: UUID
+    let id: String
     let name: String
     let number: String
     let operator_id: UUID
