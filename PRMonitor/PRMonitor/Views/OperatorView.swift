@@ -144,7 +144,7 @@ struct OperatorView: View {
                 ScrollView {
                     LazyVStack(spacing: 12) {
                         ForEach(viewModel?.filteredZones ?? []) { zone in
-                            NavigationLink(destination: ParkingRightListView(zone: zone)) {
+                            NavigationLink(destination: ParkingRightListView(zone: zone, operatorId: selectedOperator.id.uuidString)) {
                                 HStack {
                                     VStack(alignment: .leading, spacing: 6) {
                                         Text(zone.name)

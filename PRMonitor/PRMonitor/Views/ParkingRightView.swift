@@ -17,6 +17,9 @@ struct ParkingRightView: View {
             Circle()
                 .fill(Color.green)
                 .frame(width: 8, height: 8)
+                .onAppear {
+                    print("🚗 ParkingRightView: Displaying \(pr.vehicle_plate ?? "N/A")")
+                }
             
             VStack(alignment: .leading, spacing: 4) {
                 // Vehicle info
@@ -51,6 +54,17 @@ struct ParkingRightView: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                     Spacer()
+                    
+                    // Reference ID
+                    if let referenceId = pr.reference_id {
+                        Text("Ref: \(referenceId)")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color(.systemGray6))
+                            .cornerRadius(4)
+                    }
                 }
             }
             
@@ -67,16 +81,30 @@ struct ParkingRightView: View {
     }
     
     private func formatTime(_ timeString: String) -> String {
-        // Simple time formatting - you might want to use DateFormatter for more sophisticated formatting
-        let components = timeString.components(separatedBy: " ")
-        if components.count > 1 {
-            let timePart = components[1].replacingOccurrences(of: "Z", with: "")
-            let timeComponents = timePart.components(separatedBy: ":")
-            if timeComponents.count >= 2 {
-                return "\(timeComponents[0]):\(timeComponents[1])"
-            }
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        
+        // Try parsing with fractional seconds first
+        if let date = formatter.date(from: timeString) {
+            return formatLocalTime(date)
         }
+        
+        // Fallback: try without fractional seconds
+        formatter.formatOptions = [.withInternetDateTime]
+        if let date = formatter.date(from: timeString) {
+            return formatLocalTime(date)
+        }
+        
+        // If all else fails, return the original string
         return timeString
+    }
+    
+    private func formatLocalTime(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .none
+        formatter.timeStyle = .short
+        formatter.timeZone = TimeZone.current
+        return formatter.string(from: date)
     }
 }
 

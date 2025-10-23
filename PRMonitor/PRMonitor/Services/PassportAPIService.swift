@@ -345,6 +345,68 @@ final class PassportAPIService: ObservableObject {
 //        return result
 //    }
     
+    func fetchParkingRights(forOperatorId operatorId: String, zoneId: String) async throws -> [ParkingRight] {
+        // Build URL with proper query parameters
+        var components = URLComponents(string: "\(baseURL)/v4/enforcement/parking-rights")!
+        components.queryItems = [
+            URLQueryItem(name: "operator_id", value: operatorId.lowercased()),
+            URLQueryItem(name: "zone_id", value: zoneId)
+        ]
+        
+        guard let url = components.url else {
+            throw NSError(domain: "URL", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to construct URL"])
+        }
+        
+        print("🚗 Fetching parking rights for operator: \(operatorId), zone: \(zoneId)")
+        print("🚗 URL: \(url.absoluteString)")
+        print("🚗 Query parameters: operator_id=\(operatorId.lowercased()), zone_id=\(zoneId)")
+        
+        // Create a wrapper response model for the API
+        struct ParkingRightsResponse: Codable {
+            let data: [ParkingRight]
+        }
+        
+        do {
+            let response = try await performAuthenticatedRequest(url: url, responseType: ParkingRightsResponse.self)
+            print("🚗 API returned \(response.data.count) parking rights")
+            for (index, parkingRight) in response.data.enumerated() {
+                print("🚗 Parking Right \(index + 1): \(parkingRight.id)")
+                print("🔍 Getting vehicle_plate: \(parkingRight.vehicle_plate ?? "nil")")
+                print("🚗   - Vehicle: \(parkingRight.vehicle_plate ?? "N/A") (\(parkingRight.vehicle_state ?? "N/A"))")
+                print("🚗   - Time: \(parkingRight.start_time) to \(parkingRight.end_time)")
+                print("🚗   - Reference: \(parkingRight.reference_id ?? "N/A")")
+            }
+            return response.data
+        } catch {
+            print("🚗 Error fetching parking rights: \(error)")
+            print("🚗 Error details: \(error.localizedDescription)")
+            
+            // Try to provide more specific error information
+            if let decodingError = error as? DecodingError {
+                print("🚗 Decoding error details: \(decodingError)")
+                switch decodingError {
+                case .typeMismatch(let type, let context):
+                    print("🚗 Type mismatch: expected \(type), context: \(context)")
+                case .valueNotFound(let type, let context):
+                    print("🚗 Value not found: \(type), context: \(context)")
+                case .keyNotFound(let key, let context):
+                    print("🚗 Key not found: \(key), context: \(context)")
+                case .dataCorrupted(let context):
+                    print("🚗 Data corrupted: \(context)")
+                @unknown default:
+                    print("🚗 Unknown decoding error")
+                }
+            }
+            
+            // Log the raw response if available
+            if let urlError = error as? URLError {
+                print("🚗 URL Error: \(urlError.localizedDescription)")
+            }
+            
+            throw error
+        }
+    }
+    
     // MARK: - Private Network Methods
     
     private func performAuthenticatedRequest<T: Decodable>(url: URL, responseType: T.Type) async throws -> T {
@@ -405,6 +467,9 @@ final class PassportAPIService: ObservableObject {
         } else {
             print("🌐 Could not decode response body as UTF-8")
         }
+        
+        // Log response headers for debugging
+        print("🌐 Response headers: \(httpResponse.allHeaderFields)")
         
         if httpResponse.statusCode == 401 {
             // Token expired, invalidate and retry once
