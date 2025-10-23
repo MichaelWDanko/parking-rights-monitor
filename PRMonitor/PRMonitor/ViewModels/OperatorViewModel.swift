@@ -8,6 +8,12 @@
 import Foundation
 import SwiftUI
 
+enum SortOption: String, CaseIterable {
+    case nameAscending = "A-Z by Name"
+    case nameDescending = "Z-A by Name"
+    case numberAscending = "ASC by Number"
+    case numberDescending = "DESC by Number"
+}
 
 extension OperatorView {
     @Observable
@@ -16,6 +22,7 @@ extension OperatorView {
         var isLoadingZones = false
         var zonesError: String?
         var searchText: String = ""
+        var sortOption: SortOption = .nameAscending
         
         private let selectedOperator: Operator
         private var passportAPIService: PassportAPIService?
@@ -26,13 +33,24 @@ extension OperatorView {
         }
         
         var filteredZones: [Zone] {
-            if searchText.isEmpty {
-                return zones
-            } else {
-                return zones.filter { zone in
-                    zone.name.localizedCaseInsensitiveContains(searchText) ||
-                    zone.number.localizedCaseInsensitiveContains(searchText)
-                }
+            let filtered = searchText.isEmpty ? zones : zones.filter { zone in
+                zone.name.localizedCaseInsensitiveContains(searchText) ||
+                zone.number.localizedCaseInsensitiveContains(searchText)
+            }
+            
+            return sortZones(filtered)
+        }
+        
+        private func sortZones(_ zones: [Zone]) -> [Zone] {
+            switch sortOption {
+            case .nameAscending:
+                return zones.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+            case .nameDescending:
+                return zones.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedDescending }
+            case .numberAscending:
+                return zones.sorted { $0.number.localizedCaseInsensitiveCompare($1.number) == .orderedAscending }
+            case .numberDescending:
+                return zones.sorted { $0.number.localizedCaseInsensitiveCompare($1.number) == .orderedDescending }
             }
         }
         
