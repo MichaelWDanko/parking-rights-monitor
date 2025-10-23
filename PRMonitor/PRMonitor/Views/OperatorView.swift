@@ -16,12 +16,22 @@ struct OperatorView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            VStack {
+            // Section header
+            VStack(alignment: .leading, spacing: 8) {
                 Text("Choose a zone")
-                    .padding(.top)
-                    .font(.title2)
-                    .multilineTextAlignment(.leading)
+                    .font(.title3)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.primary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top, 16)
+                
+                Text("Select a zone to view parking rights")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.bottom, 8)
             }
+            .padding(.horizontal)
             
             // Search bar for filtering zones
             HStack {
