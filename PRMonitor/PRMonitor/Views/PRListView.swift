@@ -36,6 +36,6 @@ struct PRListView: View {
 
 #Preview {
     PRListView(
-        zone: charlotte.zones.first ?? Zone(id: UUID(), name: "Sample Zone", number: "S-001", operator_id: charlotte.id)
+        zone: charlotte.zones.first ?? Zone(id: UUID().uuidString, name: "Sample Zone", number: "S-001", operator_id: charlotte.id)
     )
 }
