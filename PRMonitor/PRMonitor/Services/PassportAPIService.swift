@@ -235,10 +235,10 @@ final class PassportAPIService {
         }
     }
     
-//    func fetchZones(for operatorId: String) async throws -> [Zone] {
-//        let url = URL(string: "\(baseURL)/shared/zones?operator_id=\(operatorId)")!
-//        return try await performAuthenticatedRequest(url: url, responseType: [Zone].self)
-//    }
+    func fetchZones(for operatorId: String) async throws -> [Zone] {
+        let url = URL(string: "\(baseURL)/shared/zones?operator_id=\(operatorId)")!
+        return try await performAuthenticatedRequest(url: url, responseType: [Zone].self)
+    }
 //    
 //    func fetchParkingRights(for zoneId: String) async throws -> [ParkingRight] {
 //        let url = URL(string: "\(baseURL)/zones/\(zoneId)/parking-rights")!

@@ -28,24 +28,17 @@ struct ContentView: View {
     var body: some View {
         TabView {
             NavigationStack{
-                MonitorTabRootView()
+                OperatorSelectionView()
             }
             .tabItem {
                 Label("Monitor", systemImage: "location.magnifyingglass")
             }
             
             NavigationStack{
-                SettingsTabRootView()
+                SettingsTabRootView(passportAPIService: passportAPIService)
             }
             .tabItem {
                 Label("Settings", systemImage: "gearshape")
-            }
-            
-            NavigationStack{
-                TokenTestView(passportAPIService: passportAPIService)
-            }
-            .tabItem {
-                Label("Token Test", systemImage: "gearshift.layout.sixspeed")
             }
         }
     }
