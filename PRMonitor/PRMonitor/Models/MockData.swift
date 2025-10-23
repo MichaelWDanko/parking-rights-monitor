@@ -7,11 +7,11 @@
 
 import Foundation
 
-let pleasantville = Operator(id: UUID(uuidString: "12a11eb2-6828-43a3-ba73-c11e1bc0c4a2")!, name: "City of Pleasantville")
+// let pleasantville = Operator(id: UUID(uuidString: "12a11eb2-6828-43a3-ba73-c11e1bc0c4a2")!, name: "City of Pleasantville")
 let zdanko = Operator(id: UUID(uuidString: "43c401c0-a17e-40e5-ae26-4f5f205bf063")!, name: "zDanko Parking")
-let charlotte = Operator(id: UUID(uuidString: "910abd15-abae-4810-9787-76665bdd79e0")!, name: "City of Charlotte, NC")
+// let charlotte = Operator(id: UUID(uuidString: "910abd15-abae-4810-9787-76665bdd79e0")!, name: "City of Charlotte, NC")
 
-var mockOperators: [Operator] = [pleasantville, zdanko, charlotte]
+var mockOperators: [Operator] = [zdanko]
 
 let right = ParkingRight(
     id: "0800fc577294c34e0b28ad2839435945",

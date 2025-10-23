@@ -121,7 +121,7 @@ struct ParkingRightListView: View {
         id: "sample-zone-id",
         name: "Sample Zone",
         number: "S-001",
-        operator_id: charlotte.id.uuidString
+        operator_id: zdanko.id.uuidString
     )
     
     ParkingRightListView(zone: sampleZone)

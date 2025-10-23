@@ -150,6 +150,6 @@ struct OperatorView: View {
     )
     let mockAPIService = PassportAPIService(config: config)
     
-    OperatorView(selectedOperator: charlotte)
+    OperatorView(selectedOperator: zdanko)
         .environmentObject(mockAPIService)
 }

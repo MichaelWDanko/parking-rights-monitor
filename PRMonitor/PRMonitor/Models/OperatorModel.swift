@@ -47,15 +47,12 @@ struct Zone : Identifiable, Codable {
 struct Operator: Identifiable, Codable {
     let id: UUID
     let name: String
-    
     let environment: Environment
-    
-    var zones = [Zone]()
     
     init(name: String) {
         self.id = UUID()
-        self.environment = .production
         self.name = name
+        self.environment = .production
         print("Creating a new operator: \(self.name) - \(self.id)")
     }
     

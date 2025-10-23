@@ -7,7 +7,6 @@
 
 import Foundation
 import SwiftUI
-import Combine
 
 
 extension OperatorView {
@@ -60,18 +59,3 @@ extension OperatorView {
     }
 }
 
-//@MainActor
-//class OperatorViewModel2: ObservableObject {
-//    @Published var zones: [Zone] = []
-//    @Published var isLoadingZones = false
-//    @Published var zonesError: String?
-//    @Published var searchText = ""
-//    
-//    private let selectedOperator: Operator
-//    private var passportAPIService: PassportAPIService?
-//    
-//    init(selectedOperator: Operator, passportAPIService: PassportAPIService) {
-//        self.selectedOperator = selectedOperator
-//        self.passportAPIService = passportAPIService
-//    }
-//}

@@ -303,6 +303,47 @@ final class PassportAPIService: ObservableObject {
 //        
 //        return result
 //    }
+//    
+//    func fetchParkingRightsByZone(forZoneId zoneId: String) async throws -> [ParkingRight] {
+//        let url = URL(string: "\(baseURL)/zones/\(zoneId)/parking-rights")!
+//        return try await performAuthenticatedRequest(url: url, responseType: [ParkingRight].self)
+//    }
+    
+    // MARK: - Convenience Methods
+    
+    /// Fetches parking rights for multiple zones in parallel
+//    func fetchParkingRights(for zoneIds: [String]) async throws -> [String: [ParkingRight]] {
+//        return try await withThrowingTaskGroup(of: (String, [ParkingRight]).self) { group in
+//            var results: [String: [ParkingRight]] = [:]
+//            
+//            for zoneId in zoneIds {
+//                group.addTask {
+//                    let parkingRights = try await self.fetchParkingRights(for: zoneId)
+//                    return (zoneId, parkingRights)
+//                }
+//            }
+//            
+//            for try await (zoneId, parkingRights) in group {
+//                results[zoneId] = parkingRights
+//            }
+//            
+//            return results
+//        }
+//    }
+    
+    /// Fetches all zones for an operator and their parking rights
+//    func fetchZonesWithParkingRights(for operatorId: String) async throws -> [Zone: [ParkingRight]] {
+//        let zones = try await fetchZones(for: operatorId)
+//        let zoneIds = zones.map { $0.id }
+//        let parkingRightsByZone = try await fetchParkingRights(for: zoneIds)
+//        
+//        var result: [Zone: [ParkingRight]] = [:]
+//        for zone in zones {
+//            result[zone] = parkingRightsByZone[zone.id] ?? []
+//        }
+//        
+//        return result
+//    }
     
     // MARK: - Private Network Methods
     
