@@ -22,7 +22,7 @@ extension OperatorView {
         var isLoadingZones = false
         var zonesError: String?
         var searchText: String = ""
-        var sortOption: SortOption = .nameAscending
+        var sortOption: SortOption = .numberAscending
         
         private let selectedOperator: Operator
         private var passportAPIService: PassportAPIService?
