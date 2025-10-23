@@ -17,7 +17,31 @@ struct Zone : Identifiable, Codable {
     let id: String
     let name: String
     let number: String
-    let operator_id: UUID
+    let operator_id: String
+    
+    // Custom initializer to handle API response safely
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        // Decode required fields with fallbacks for safety
+        id = try container.decode(String.self, forKey: .id)
+        name = try container.decodeIfPresent(String.self, forKey: .name) ?? "Unknown Zone"
+        number = try container.decodeIfPresent(String.self, forKey: .number) ?? ""
+        operator_id = try container.decodeIfPresent(String.self, forKey: .operator_id) ?? ""
+    }
+    
+    // Custom coding keys for the fields we need
+    enum CodingKeys: String, CodingKey {
+        case id, name, number, operator_id
+    }
+    
+    // Custom initializer for creating Zone instances manually
+    init(id: String, name: String, number: String, operator_id: String) {
+        self.id = id
+        self.name = name
+        self.number = number
+        self.operator_id = operator_id
+    }
 }
 
 struct Operator: Identifiable, Codable {

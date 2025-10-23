@@ -33,6 +33,7 @@ struct ContentView: View {
             .tabItem {
                 Label("Monitor", systemImage: "location.magnifyingglass")
             }
+            .environmentObject(passportAPIService)
             
             NavigationStack{
                 SettingsTabRootView(passportAPIService: passportAPIService)

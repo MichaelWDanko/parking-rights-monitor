@@ -11,21 +11,10 @@ struct OperatorView: View {
     var selectedOperator: Operator
     var selectedZone: Zone?
     
-    @State private var searchText = ""
-    
-    // Computed property to filter zones based on search text
-    private var filteredZones: [Zone] {
-        if searchText.isEmpty {
-            return selectedOperator.zones
-        } else {
-            return selectedOperator.zones.filter { zone in
-                zone.name.localizedCaseInsensitiveContains(searchText)
-            }
-        }
-    }
+    @EnvironmentObject var passportAPIService: PassportAPIService
+    @State private var viewModel: OperatorViewModel?
     
     var body: some View {
-        
         VStack(spacing: 0) {
             VStack {
                 Text("Choose a zone")
@@ -39,12 +28,15 @@ struct OperatorView: View {
                 Image(systemName: "magnifyingglass")
                     .foregroundColor(.gray)
                 
-                TextField("Search zones...", text: $searchText)
-                    .textFieldStyle(PlainTextFieldStyle())
+                TextField("Search by name or number...", text: Binding(
+                    get: { viewModel?.searchText ?? "" },
+                    set: { viewModel?.searchText = $0 }
+                ))
+                .textFieldStyle(PlainTextFieldStyle())
                 
-                if !searchText.isEmpty {
+                if !(viewModel?.searchText.isEmpty ?? true) {
                     Button(action: {
-                        searchText = ""
+                        viewModel?.searchText = ""
                     }) {
                         Image(systemName: "xmark.circle.fill")
                             .foregroundColor(.gray)
@@ -57,7 +49,28 @@ struct OperatorView: View {
             .cornerRadius(10)
             .padding(.horizontal)
             
-            if filteredZones.isEmpty && !searchText.isEmpty {
+            if viewModel?.isLoadingZones == true {
+                ProgressView("Loading zones...")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if let error = viewModel?.zonesError {
+                VStack(spacing: 16) {
+                    Image(systemName: "exclamationmark.triangle")
+                        .font(.system(size: 50))
+                        .foregroundColor(.red)
+                    Text("Failed to load zones")
+                        .font(.headline)
+                        .foregroundColor(.red)
+                    Text(error)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                    Button("Retry") {
+                        viewModel?.loadZones()
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if (viewModel?.filteredZones.isEmpty ?? true) && !(viewModel?.searchText.isEmpty ?? true) {
                 VStack(spacing: 16) {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 50))
@@ -70,11 +83,33 @@ struct OperatorView: View {
                         .foregroundColor(.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if (viewModel?.zones.isEmpty ?? true) {
+                VStack(spacing: 16) {
+                    Image(systemName: "location.slash")
+                        .font(.system(size: 50))
+                        .foregroundColor(.gray)
+                    Text("No zones available")
+                        .font(.headline)
+                        .foregroundColor(.gray)
+                    Text("This operator doesn't have any zones configured")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 List {
-                    ForEach(filteredZones) { zone in
+                    ForEach(viewModel?.filteredZones ?? []) { zone in
                         NavigationLink(destination: ParkingRightListView(zone: zone)) {
-                            Text(zone.name)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(zone.name)
+                                    .font(.headline)
+                                    .foregroundColor(.primary)
+                                Text("Zone #\(zone.number)")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.vertical, 2)
                         }
                     }
                 }
@@ -85,14 +120,36 @@ struct OperatorView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: {}) {
+                Button(action: {
+                    viewModel?.loadZones()
+                }) {
                     Image(systemName: "arrow.clockwise.circle")
                 }
             }
+        }
+        .onAppear {
+            if viewModel == nil {
+                viewModel = OperatorViewModel(
+                    selectedOperator: selectedOperator,
+                    passportAPIService: passportAPIService
+                )
+            }
+            viewModel?.loadZones()
         }
     }
 }
 
 #Preview {
+    let secrets = try! SecretsLoader.load()
+    let config = OAuthConfiguration(
+        tokenURL: URL(string: "https://api.us.passportinc.com/v3/shared/access-tokens")!,
+        client_id: secrets.client_id,
+        client_secret: secrets.client_secret,
+        audience: "public.api.passportinc.com",
+        clientTraceId: "danko-test"
+    )
+    let mockAPIService = PassportAPIService(config: config)
+    
     OperatorView(selectedOperator: charlotte)
+        .environmentObject(mockAPIService)
 }

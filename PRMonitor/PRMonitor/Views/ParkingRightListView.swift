@@ -116,7 +116,13 @@ struct ParkingRightListView: View {
 }
 
 #Preview {
-    ParkingRightListView(
-        zone: charlotte.zones.first ?? Zone(id: UUID().uuidString, name: "Sample Zone", number: "S-001", operator_id: charlotte.id)
+    // Create a sample zone for preview
+    let sampleZone = Zone(
+        id: "sample-zone-id",
+        name: "Sample Zone",
+        number: "S-001",
+        operator_id: charlotte.id.uuidString
     )
+    
+    ParkingRightListView(zone: sampleZone)
 }

@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Combine
 
 // MARK: - Configuration and Secrets
 
@@ -181,11 +182,11 @@ private actor TokenManager {
 
 // MARK: - Consolidated PassportAPIService
 
-final class PassportAPIService {
+final class PassportAPIService: ObservableObject {
     private let tokenManager: TokenManager
     private let session: URLSession
     private let clientTraceId: String
-    private let baseURL = "https://api.us.passportinc.com/v3"
+    private let baseURL = "https://api.us.passportinc.com"
     
     init(config: OAuthConfiguration, session: URLSession = .shared, clientTraceId: String = "danko-test") {
         self.tokenManager = TokenManager(config: config, session: session)
@@ -235,12 +236,34 @@ final class PassportAPIService {
         }
     }
     
-    func fetchZones(for operatorId: String) async throws -> [Zone] {
-        let url = URL(string: "\(baseURL)/shared/zones?operator_id=\(operatorId)")!
-        return try await performAuthenticatedRequest(url: url, responseType: [Zone].self)
+    func fetchZones(forOperatorId operatorId: String) async throws -> [Zone] {
+        let url = URL(string: "\(baseURL)/v3/shared/zones?operator_id=\(operatorId.lowercased())")!
+        print("🏢 Fetching zones for operator: \(operatorId)")
+        print("🏢 URL: \(url.absoluteString)")
+        
+        // Create a wrapper response model for the API
+        struct ZonesResponse: Codable {
+            let data: [Zone]
+        }
+        
+        do {
+            let response = try await performAuthenticatedRequest(url: url, responseType: ZonesResponse.self)
+            print("🏢 API returned \(response.data.count) zones")
+            for (index, zone) in response.data.enumerated() {
+                print("🏢 Zone \(index + 1): \(zone.name) (ID: \(zone.id))")
+            }
+            return response.data
+        } catch {
+            print("🏢 Error fetching zones: \(error)")
+            // Try to provide more specific error information
+            if let decodingError = error as? DecodingError {
+                print("🏢 Decoding error details: \(decodingError)")
+            }
+            throw error
+        }
     }
 //    
-//    func fetchParkingRights(for zoneId: String) async throws -> [ParkingRight] {
+//    func fetchParkingRightsByZone(forZoneId zoneId: String) async throws -> [ParkingRight] {
 //        let url = URL(string: "\(baseURL)/zones/\(zoneId)/parking-rights")!
 //        return try await performAuthenticatedRequest(url: url, responseType: [ParkingRight].self)
 //    }
@@ -289,7 +312,29 @@ final class PassportAPIService {
         
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
-        return try decoder.decode(responseType, from: data)
+        
+        do {
+            let result = try decoder.decode(responseType, from: data)
+            print("🔍 Successfully decoded \(responseType)")
+            return result
+        } catch {
+            print("🔍 JSON Decoding failed: \(error)")
+            if let decodingError = error as? DecodingError {
+                switch decodingError {
+                case .typeMismatch(let type, let context):
+                    print("🔍 Type mismatch: expected \(type), context: \(context)")
+                case .valueNotFound(let type, let context):
+                    print("🔍 Value not found: \(type), context: \(context)")
+                case .keyNotFound(let key, let context):
+                    print("🔍 Key not found: \(key), context: \(context)")
+                case .dataCorrupted(let context):
+                    print("🔍 Data corrupted: \(context)")
+                @unknown default:
+                    print("🔍 Unknown decoding error")
+                }
+            }
+            throw error
+        }
     }
     
     private func createAuthenticatedRequest(url: URL, method: String = "GET") async throws -> URLRequest {
@@ -302,9 +347,22 @@ final class PassportAPIService {
     }
     
     private func performRequest(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {
+        print("🌐 Making request to: \(request.url?.absoluteString ?? "unknown")")
+        print("🌐 Method: \(request.httpMethod ?? "unknown")")
+        print("🌐 Headers: \(request.allHTTPHeaderFields ?? [:])")
+        
         let (data, response) = try await session.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse else {
             throw URLError(.badServerResponse)
+        }
+        
+        print("🌐 Response status: \(httpResponse.statusCode)")
+        
+        // Log the raw response body for debugging
+        if let responseBody = String(data: data, encoding: .utf8) {
+            print("🌐 Raw response body: \(responseBody)")
+        } else {
+            print("🌐 Could not decode response body as UTF-8")
         }
         
         if httpResponse.statusCode == 401 {
