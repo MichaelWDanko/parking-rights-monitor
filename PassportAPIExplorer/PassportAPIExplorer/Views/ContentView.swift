@@ -1,6 +1,6 @@
 //
 //  ContentView.swift
-//  PRMonitor
+//  Passport API Explorer
 //
 //  Created by Michael Danko on 10/4/25.
 //
@@ -31,7 +31,7 @@ struct ContentView: View {
                 OperatorSelectionView()
             }
             .tabItem {
-                Label("Monitor", systemImage: "location.magnifyingglass")
+                Label("API Explorer", systemImage: "network")
             }
             .environmentObject(passportAPIService)
             
@@ -47,4 +47,5 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
+        .modelContainer(for: Operator.self, inMemory: true)
 }

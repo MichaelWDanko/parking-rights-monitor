@@ -1,15 +1,15 @@
 //
 //  MockData.swift
-//  PRMonitor
+//  Passport API Explorer
 //
 //  Created by Michael Danko on 10/6/25.
 //
 
 import Foundation
 
-// let pleasantville = Operator(id: UUID(uuidString: "12a11eb2-6828-43a3-ba73-c11e1bc0c4a2")!, name: "City of Pleasantville")
-let zdanko = Operator(id: UUID(uuidString: "43c401c0-a17e-40e5-ae26-4f5f205bf063")!, name: "zDanko Parking")
-// let charlotte = Operator(id: UUID(uuidString: "910abd15-abae-4810-9787-76665bdd79e0")!, name: "City of Charlotte, NC")
+// let pleasantville = Operator(name: "City of Pleasantville", id: "12a11eb2-6828-43a3-ba73-c11e1bc0c4a2")
+let zdanko = Operator(name: "zDanko Parking", id: "43c401c0-a17e-40e5-ae26-4f5f205bf063")
+// let charlotte = Operator(name: "City of Charlotte, NC", id: "910abd15-abae-4810-9787-76665bdd79e0")
 
 var mockOperators: [Operator] = [zdanko]
 

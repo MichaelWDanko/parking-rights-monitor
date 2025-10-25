@@ -1,6 +1,6 @@
 //
 //  OperatorViewModel.swift
-//  PRMonitor
+//  Passport API Explorer
 //
 //  Created by Michael Danko on 10/22/25.
 //
@@ -62,7 +62,7 @@ extension OperatorView {
             Task {
                 do {
                     print("🔄 Calling API service to fetch zones...")
-                    let fetchedZones = try await passportAPIService?.fetchZones(forOperatorId: selectedOperator.id.uuidString)
+                    let fetchedZones = try await passportAPIService?.fetchZones(forOperatorId: selectedOperator.id)
                     print("🔄 API service returned \(fetchedZones?.count ?? 0) zones")
                     zones = fetchedZones ?? []
                     print("🔄 ViewModel now has \(zones.count) zones")

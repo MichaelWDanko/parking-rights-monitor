@@ -1,6 +1,6 @@
 //
 //  ParkingRightListView.swift
-//  PRMonitor
+//  Passport API Explorer
 //
 //  Created by Michael Danko on 10/6/25.
 //
@@ -172,7 +172,7 @@ struct ParkingRightListView: View {
         id: "sample-zone-id",
         name: "Sample Zone",
         number: "S-001",
-        operator_id: zdanko.id.uuidString
+        operator_id: zdanko.id
     )
     
     let secrets = try! SecretsLoader.load()
@@ -185,6 +185,6 @@ struct ParkingRightListView: View {
     )
     let mockAPIService = PassportAPIService(config: config)
     
-    ParkingRightListView(zone: sampleZone, operatorId: zdanko.id.uuidString)
+    ParkingRightListView(zone: sampleZone, operatorId: zdanko.id)
         .environmentObject(mockAPIService)
 }

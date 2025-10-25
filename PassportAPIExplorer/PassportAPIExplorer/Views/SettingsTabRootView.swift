@@ -1,6 +1,6 @@
 //
 //  SettingsTabRootView.swift
-//  PRMonitor
+//  Passport API Explorer
 //
 //  Created by Michael Danko on 10/5/25.
 //
@@ -19,6 +19,7 @@ struct SettingsTabRootView: View {
             List {
                 Section("Debug Tools") {
                     NavigationLink("Token Test", destination: TokenTestView(passportAPIService: passportAPIService))
+                    NavigationLink("iCloud Test", destination: iCloudTestView())
                 }
                 
                 Section("About") {

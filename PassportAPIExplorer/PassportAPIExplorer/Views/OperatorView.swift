@@ -1,6 +1,6 @@
 //
 //  OperatorView.swift
-//  PRMonitor
+//  Passport API Explorer
 //
 //  Created by Michael Danko on 10/6/25.
 //
@@ -144,7 +144,7 @@ struct OperatorView: View {
                 ScrollView {
                     LazyVStack(spacing: 12) {
                         ForEach(viewModel?.filteredZones ?? []) { zone in
-                            NavigationLink(destination: ParkingRightListView(zone: zone, operatorId: selectedOperator.id.uuidString)) {
+                            NavigationLink(destination: ParkingRightListView(zone: zone, operatorId: selectedOperator.id)) {
                                 HStack {
                                     VStack(alignment: .leading, spacing: 6) {
                                         Text(zone.name)
