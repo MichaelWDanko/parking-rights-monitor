@@ -11,7 +11,7 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		DAA404E92E921FD20066A8B1 /* Exceptions for "PassportAPIExplorer" folder in "PassportAPIExplorer" target */ = {
+		DA76B0492EAC5F1100CBD812 /* Exceptions for "PassportAPIExplorer" folder in "PassportAPIExplorer" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
@@ -24,7 +24,7 @@
 		DAA404DE2E921FD10066A8B1 /* PassportAPIExplorer */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				DAA404E92E921FD20066A8B1 /* Exceptions for "PassportAPIExplorer" folder in "PassportAPIExplorer" target */,
+				DA76B0492EAC5F1100CBD812 /* Exceptions for "PassportAPIExplorer" folder in "PassportAPIExplorer" target */,
 			);
 			path = PassportAPIExplorer;
 			sourceTree = "<group>";
@@ -150,6 +150,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = PassportAPIExplorer/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Thor Explorer";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -185,6 +186,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = PassportAPIExplorer/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Thor Explorer";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
