@@ -67,11 +67,6 @@ struct ParkingRightView: View {
                     }
                 }
             }
-            
-            // Chevron
-            Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundColor(.secondary)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)

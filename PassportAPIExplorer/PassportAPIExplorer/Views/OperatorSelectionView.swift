@@ -64,16 +64,39 @@ struct OperatorSelectionView: View {
                                 }
                                 .padding(.vertical, 4)
                             }
-                            .contextMenu {
-                                Button("Edit") {
-                                    operatorToEdit = op
-                                }
-                                Button("Delete", role: .destructive) {
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                // Delete action
+                                Button(role: .destructive) {
                                     dataService?.deleteOperator(op)
+                                } label: {
+                                    VStack(spacing: 4) {
+                                        Image(systemName: "trash")
+                                            .font(.system(size: 16, weight: .medium))
+                                        Text("Delete")
+                                            .font(.caption2)
+                                            .fontWeight(.medium)
+                                    }
+                                    .frame(minWidth: 60)
+                                    .padding(.vertical, 8)
                                 }
+                                
+                                // Edit action
+                                Button {
+                                    operatorToEdit = op
+                                } label: {
+                                    VStack(spacing: 4) {
+                                        Image(systemName: "pencil")
+                                            .font(.system(size: 16, weight: .medium))
+                                        Text("Edit")
+                                            .font(.caption2)
+                                            .fontWeight(.medium)
+                                    }
+                                    .frame(minWidth: 60)
+                                    .padding(.vertical, 8)
+                                }
+                                .tint(.blue)
                             }
                         }
-                        .onDelete(perform: deleteOperators)
                     }
                     .refreshable {
                         await refreshOperators()
@@ -105,12 +128,6 @@ struct OperatorSelectionView: View {
         }
     }
     
-    private func deleteOperators(offsets: IndexSet) {
-        for index in offsets {
-            let operatorToDelete = operators[index]
-            dataService?.deleteOperator(operatorToDelete)
-        }
-    }
     
     private func environmentColor(for environment: OperatorEnvironment) -> Color {
         switch environment {
