@@ -10,6 +10,8 @@ import SwiftUI
 struct ParkingRightView: View {
     
     let pr: ParkingRight
+    @AppStorage("selectedThemeMode") private var selectedThemeMode: ThemeMode = .auto
+    @Environment(\.colorScheme) var colorScheme
     
     var body: some View {
         HStack(spacing: 12) {
@@ -28,18 +30,18 @@ struct ParkingRightView: View {
                         Text(plate)
                             .font(.headline)
                             .fontWeight(.semibold)
-                            .foregroundColor(.glassTextPrimary)
+                            .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
                     }
                     if let state = pr.vehicle_state {
                         Text(state)
                             .font(.caption)
-                            .foregroundColor(.glassTextSecondary)
+                            .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                     }
                     Spacer()
                     if let space = pr.space_number {
                         Text("Space \(space)")
                             .font(.caption)
-                            .foregroundColor(.glassTextSecondary)
+                            .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                     }
                 }
                 
@@ -47,20 +49,20 @@ struct ParkingRightView: View {
                 HStack {
                     Text(formatTime(pr.start_time))
                         .font(.caption)
-                        .foregroundColor(.glassTextSecondary)
+                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                     Text("→")
                         .font(.caption)
-                        .foregroundColor(.glassTextSecondary)
+                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                     Text(formatTime(pr.end_time))
                         .font(.caption)
-                        .foregroundColor(.glassTextSecondary)
+                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                     Spacer()
                     
                     // Reference ID
                     if let referenceId = pr.reference_id {
                         Text("Ref: \(referenceId)")
                             .font(.caption2)
-                            .foregroundColor(.glassTextSecondary)
+                            .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
                             .background(Color.glassBackground)
@@ -71,7 +73,7 @@ struct ParkingRightView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .glassmorphismListRow()
+        .adaptiveGlassmorphismListRow()
     }
     
     private func formatTime(_ timeString: String) -> String {

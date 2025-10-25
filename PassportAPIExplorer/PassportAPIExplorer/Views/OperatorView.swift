@@ -12,6 +12,8 @@ struct OperatorView: View {
     var selectedZone: Zone?
     
     @EnvironmentObject var passportAPIService: PassportAPIService
+    @AppStorage("selectedThemeMode") private var selectedThemeMode: ThemeMode = .auto
+    @Environment(\.colorScheme) var colorScheme
     @State private var viewModel: OperatorViewModel?
     
     var body: some View {
@@ -21,49 +23,49 @@ struct OperatorView: View {
                 Text("Choose a zone")
                     .font(.title3)
                     .fontWeight(.semibold)
-                    .foregroundColor(.glassTextPrimary)
+                    .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.top, 16)
                 
                 Text("Select a zone to view parking rights")
                     .font(.subheadline)
-                    .foregroundColor(.glassTextSecondary)
+                    .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.bottom, 16)
                 }
                 .padding(.horizontal, 16)
-                .glassmorphismCard()
+                .adaptiveGlassmorphismCard()
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
             
             // Search bar for filtering zones
             HStack {
                 Image(systemName: "magnifyingglass")
-                    .foregroundColor(.glassTextSecondary)
+                    .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                 
                 TextField("Search by name or number...", text: Binding(
                     get: { viewModel?.searchText ?? "" },
                     set: { viewModel?.searchText = $0 }
                 ))
                 .textFieldStyle(PlainTextFieldStyle())
-                .foregroundColor(.glassTextPrimary)
+                .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
                 
                 if !(viewModel?.searchText.isEmpty ?? true) {
                     Button(action: {
                         viewModel?.searchText = ""
                     }) {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(.glassTextSecondary)
+                            .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                     }
                 }
             }
-            .glassmorphismTextField()
+            .adaptiveGlassmorphismTextField()
             .padding(.horizontal, 16)
             .padding(.top, 16)
             
             if viewModel?.isLoadingZones == true {
                 ProgressView("Loading zones...")
-                    .foregroundColor(.glassTextPrimary)
+                    .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if let error = viewModel?.zonesError {
                 VStack(spacing: 16) {
@@ -72,10 +74,10 @@ struct OperatorView: View {
                         .foregroundColor(.cyanAccent)
                     Text("Failed to load zones")
                         .font(.headline)
-                        .foregroundColor(.glassTextPrimary)
+                        .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
                     Text(error)
                         .font(.subheadline)
-                        .foregroundColor(.glassTextSecondary)
+                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                         .multilineTextAlignment(.center)
                     Button("Retry") {
                         viewModel?.loadZones()
@@ -83,36 +85,36 @@ struct OperatorView: View {
                     .buttonStyle(GlassmorphismButtonStyle(isPrimary: true))
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .glassmorphismCard()
+                .adaptiveGlassmorphismCard()
                 .padding()
             } else if (viewModel?.filteredZones.isEmpty ?? true) && !(viewModel?.searchText.isEmpty ?? true) {
                 VStack(spacing: 16) {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 50))
-                        .foregroundColor(.glassTextSecondary)
+                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                     Text("No zones found")
                         .font(.headline)
-                        .foregroundColor(.glassTextPrimary)
+                        .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
                     Text("Try adjusting your search terms")
                         .font(.subheadline)
-                        .foregroundColor(.glassTextSecondary)
+                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .glassmorphismCard()
+                .adaptiveGlassmorphismCard()
                 .padding()
             } else if (viewModel?.zones.isEmpty ?? true) {
                 VStack(spacing: 20) {
                     Image(systemName: "location.slash")
                         .font(.system(size: 50))
-                        .foregroundColor(.glassTextSecondary)
+                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                     
                     VStack(spacing: 8) {
                         Text("No zones available")
                             .font(.headline)
-                            .foregroundColor(.glassTextPrimary)
+                            .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
                         Text("This operator doesn't have any zones configured")
                             .font(.subheadline)
-                            .foregroundColor(.glassTextSecondary)
+                            .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                             .multilineTextAlignment(.center)
                     }
                     
@@ -140,7 +142,7 @@ struct OperatorView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .glassmorphismCard()
+                .adaptiveGlassmorphismCard()
                 .padding()
             } else {
                 ScrollView {
@@ -151,11 +153,11 @@ struct OperatorView: View {
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text(zone.name)
                                             .font(.headline)
-                                            .foregroundColor(.glassTextPrimary)
+                                            .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
                                             .multilineTextAlignment(.leading)
                                         Text("Zone #\(zone.number)")
                                             .font(.subheadline)
-                                            .foregroundColor(.glassTextSecondary)
+                                            .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                                     }
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                     
@@ -163,12 +165,12 @@ struct OperatorView: View {
                                     
                                     Image(systemName: "chevron.right")
                                         .font(.caption)
-                                        .foregroundColor(.glassTextSecondary)
+                                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                                 }
                                 .padding(.horizontal, 16)
                                 .padding(.vertical, 10)
                             }
-                            .glassmorphismListRow()
+                            .adaptiveGlassmorphismListRow()
                             .buttonStyle(PlainButtonStyle())
                         }
                     }
@@ -184,8 +186,8 @@ struct OperatorView: View {
         .navigationTitle(selectedOperator.name)
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(false)
-        .glassmorphismNavigation()
-        .glassmorphismBackground()
+        .adaptiveGlassmorphismNavigation()
+        .adaptiveGlassmorphismBackground()
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Menu {
@@ -213,7 +215,7 @@ struct OperatorView: View {
                     }
                 } label: {
                     Image(systemName: "line.3.horizontal.decrease.circle")
-                        .foregroundColor(.glassTextPrimary)
+                        .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
                 }
             }
         }

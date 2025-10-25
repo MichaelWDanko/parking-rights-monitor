@@ -10,6 +10,8 @@ import SwiftData
 
 struct OperatorSelectionView: View {
     @Environment(\.modelContext) private var modelContext
+    @AppStorage("selectedThemeMode") private var selectedThemeMode: ThemeMode = .auto
+    @Environment(\.colorScheme) var colorScheme
     @Query private var operators: [Operator]
     @State private var showingAddOperator = false
     @State private var operatorToEdit: Operator?
@@ -23,15 +25,15 @@ struct OperatorSelectionView: View {
                     VStack(spacing: 20) {
                         Image(systemName: "building.2")
                             .font(.system(size: 50))
-                            .foregroundColor(.glassTextSecondary)
+                            .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                         
                         VStack(spacing: 8) {
                             Text("No Operators")
                                 .font(.headline)
-                                .foregroundColor(.glassTextPrimary)
+                                .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
                             Text("Add your first operator to get started")
                                 .font(.subheadline)
-                                .foregroundColor(.glassTextSecondary)
+                                .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                                 .multilineTextAlignment(.center)
                         }
                         
@@ -41,7 +43,7 @@ struct OperatorSelectionView: View {
                         .buttonStyle(GlassmorphismButtonStyle(isPrimary: true))
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .glassmorphismCard()
+                    .adaptiveGlassmorphismCard()
                     .padding()
                 } else {
                     ScrollView {
@@ -52,7 +54,7 @@ struct OperatorSelectionView: View {
                                         HStack {
                                             Text(op.name)
                                                 .font(.headline)
-                                                .foregroundColor(.glassTextPrimary)
+                                                .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
                                             Spacer()
                                             Text(op.environment?.rawValue.capitalized ?? "Unknown")
                                                 .font(.caption)
@@ -64,12 +66,12 @@ struct OperatorSelectionView: View {
                                         }
                                         Text("ID: \(op.id)")
                                             .font(.caption)
-                                            .foregroundColor(.glassTextSecondary)
+                                            .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                                     }
                                     .padding(.horizontal, 16)
                                     .padding(.vertical, 12)
                                 }
-                                .glassmorphismCard()
+                                .adaptiveGlassmorphismCard()
                                 .buttonStyle(PlainButtonStyle())
                                 .contextMenu {
                                     Button(role: .destructive) {
@@ -97,15 +99,15 @@ struct OperatorSelectionView: View {
                 }
             }
             .navigationTitle(isRefreshing ? "Refreshing..." : "Operators")
-            .glassmorphismNavigation()
-            .glassmorphismBackground()
+            .adaptiveGlassmorphismNavigation()
+            .adaptiveGlassmorphismBackground()
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: {
                         showingAddOperator = true
                     }) {
                         Image(systemName: "plus")
-                            .foregroundColor(.glassTextPrimary)
+                            .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
                     }
                 }
             }

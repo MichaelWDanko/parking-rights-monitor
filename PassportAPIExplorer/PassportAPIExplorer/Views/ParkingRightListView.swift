@@ -12,6 +12,8 @@ struct ParkingRightListView: View {
     let zone: Zone
     let operatorId: String
     @EnvironmentObject var passportAPIService: PassportAPIService
+    @AppStorage("selectedThemeMode") private var selectedThemeMode: ThemeMode = .auto
+    @Environment(\.colorScheme) var colorScheme
     
     @State private var searchText = ""
     @State private var parkingRights: [ParkingRight] = []
@@ -71,28 +73,28 @@ struct ParkingRightListView: View {
             // Search bar for filtering parking rights
             HStack {
                 Image(systemName: "magnifyingglass")
-                    .foregroundColor(.glassTextSecondary)
+                    .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                 
                 TextField("Filter parking rights...", text: $searchText)
                     .textFieldStyle(PlainTextFieldStyle())
-                    .foregroundColor(.glassTextPrimary)
+                    .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
                 
                 if !searchText.isEmpty {
                     Button(action: {
                         searchText = ""
                     }) {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(.glassTextSecondary)
+                            .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                     }
                 }
             }
-            .glassmorphismTextField()
+            .adaptiveGlassmorphismTextField()
             .padding(.horizontal)
             .padding(.bottom, 2)
             
             if isLoadingRights {
                 ProgressView("Loading parking rights...")
-                    .foregroundColor(.glassTextPrimary)
+                    .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if let error = rightsError {
                 VStack(spacing: 16) {
@@ -101,10 +103,10 @@ struct ParkingRightListView: View {
                         .foregroundColor(.cyanAccent)
                     Text("Failed to load parking rights")
                         .font(.headline)
-                        .foregroundColor(.glassTextPrimary)
+                        .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
                     Text(error)
                         .font(.subheadline)
-                        .foregroundColor(.glassTextSecondary)
+                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                         .multilineTextAlignment(.center)
                     Button("Retry") {
                         loadParkingRights()
@@ -112,38 +114,38 @@ struct ParkingRightListView: View {
                     .buttonStyle(GlassmorphismButtonStyle(isPrimary: true))
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .glassmorphismCard()
+                .adaptiveGlassmorphismCard()
                 .padding()
             } else if filteredRights.isEmpty && !searchText.isEmpty {
                 VStack(spacing: 16) {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 50))
-                        .foregroundColor(.glassTextSecondary)
+                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                     Text("No parking rights found")
                         .font(.headline)
-                        .foregroundColor(.glassTextPrimary)
+                        .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
                     Text("Try adjusting your search terms")
                         .font(.subheadline)
-                        .foregroundColor(.glassTextSecondary)
+                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .glassmorphismCard()
+                .adaptiveGlassmorphismCard()
                 .padding()
             } else if parkingRights.isEmpty {
                 VStack(spacing: 16) {
                     Image(systemName: "car")
                         .font(.system(size: 50))
-                        .foregroundColor(.glassTextSecondary)
+                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                     Text("No parking rights available")
                         .font(.headline)
-                        .foregroundColor(.glassTextPrimary)
+                        .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
                     Text("This zone doesn't have any active parking rights")
                         .font(.subheadline)
-                        .foregroundColor(.glassTextSecondary)
+                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                         .multilineTextAlignment(.center)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .glassmorphismCard()
+                .adaptiveGlassmorphismCard()
                 .padding()
             } else {
                 List(filteredRights) { parkingRight in
@@ -158,7 +160,7 @@ struct ParkingRightListView: View {
                 }
             }
         }
-        .glassmorphismBackground()
+        .adaptiveGlassmorphismBackground()
         .navigationTitle(zone.name)
         .navigationBarTitleDisplayMode(.inline)
         .glassmorphismNavigation()

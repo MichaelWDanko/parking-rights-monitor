@@ -9,6 +9,9 @@ import SwiftUI
 
 struct SettingsTabRootView: View {
     let passportAPIService: PassportAPIService
+    @AppStorage("selectedThemeMode") private var selectedThemeMode: ThemeMode = .auto
+    @Environment(\.colorScheme) var colorScheme
+    @State private var showingThemeSettings = false
     
     init(passportAPIService: PassportAPIService) {
         self.passportAPIService = passportAPIService
@@ -17,27 +20,47 @@ struct SettingsTabRootView: View {
     var body: some View {
         NavigationStack {
             List {
+                Section("Appearance") {
+                    Button(action: {
+                        showingThemeSettings = true
+                    }) {
+                        HStack {
+                            Text("Theme")
+                            Spacer()
+                            Text(selectedThemeMode.displayName)
+                                .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
+                        }
+                    }
+                    .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
+                }
+                .listRowBackground(Color.adaptiveGlassBackground(colorScheme == .dark))
+                
                 Section("Debug Tools") {
                     NavigationLink("Token Test", destination: TokenTestView(passportAPIService: passportAPIService))
                     NavigationLink("iCloud Test", destination: iCloudTestView())
                 }
-                .listRowBackground(Color.glassBackground)
+                .listRowBackground(Color.adaptiveGlassBackground(colorScheme == .dark))
                 
                 Section("About") {
                     HStack {
                         Text("Version")
-                            .foregroundColor(.glassTextPrimary)
+                            .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
                         Spacer()
                         Text("1.0.0")
-                            .foregroundColor(.glassTextSecondary)
+                            .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                     }
                 }
-                .listRowBackground(Color.glassBackground)
+                .listRowBackground(Color.adaptiveGlassBackground(colorScheme == .dark))
             }
             .scrollContentBackground(.hidden)
             .navigationTitle("Settings")
-            .glassmorphismNavigation()
-            .glassmorphismBackground()
+            .adaptiveGlassmorphismNavigation()
+            .adaptiveGlassmorphismBackground()
+            .sheet(isPresented: $showingThemeSettings) {
+                ThemeSettingsView()
+            }
         }
     }
 }

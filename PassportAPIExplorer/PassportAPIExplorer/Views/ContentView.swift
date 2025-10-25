@@ -10,6 +10,7 @@ import SwiftData
 
 struct ContentView: View {
     @State private var selection: String? = nil
+    @AppStorage("selectedThemeMode") private var selectedThemeMode: ThemeMode = .auto
     let passportAPIService: PassportAPIService
 
     init() {
@@ -42,7 +43,8 @@ struct ContentView: View {
                 Label("Settings", systemImage: "gearshape")
             }
         }
-        .glassmorphismTabView()
+        .adaptiveGlassmorphismTabView()
+        .preferredColorScheme(selectedThemeMode.preferredColorScheme)
     }
 }
 
