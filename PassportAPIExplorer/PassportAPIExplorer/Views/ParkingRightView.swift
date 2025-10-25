@@ -15,7 +15,7 @@ struct ParkingRightView: View {
         HStack(spacing: 12) {
             // Status indicator
             Circle()
-                .fill(Color.green)
+                .fill(Color.cyanAccent)
                 .frame(width: 8, height: 8)
                 .onAppear {
                     print("🚗 ParkingRightView: Displaying \(pr.vehicle_plate ?? "N/A")")
@@ -28,17 +28,18 @@ struct ParkingRightView: View {
                         Text(plate)
                             .font(.headline)
                             .fontWeight(.semibold)
+                            .foregroundColor(.glassTextPrimary)
                     }
                     if let state = pr.vehicle_state {
                         Text(state)
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(.glassTextSecondary)
                     }
                     Spacer()
                     if let space = pr.space_number {
                         Text("Space \(space)")
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(.glassTextSecondary)
                     }
                 }
                 
@@ -46,23 +47,23 @@ struct ParkingRightView: View {
                 HStack {
                     Text(formatTime(pr.start_time))
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(.glassTextSecondary)
                     Text("→")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(.glassTextSecondary)
                     Text(formatTime(pr.end_time))
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(.glassTextSecondary)
                     Spacer()
                     
                     // Reference ID
                     if let referenceId = pr.reference_id {
                         Text("Ref: \(referenceId)")
                             .font(.caption2)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(.glassTextSecondary)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
-                            .background(Color(.systemGray6))
+                            .background(Color.glassBackground)
                             .cornerRadius(4)
                     }
                 }
@@ -70,9 +71,7 @@ struct ParkingRightView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .background(Color(.systemBackground))
-        .cornerRadius(12)
-        .shadow(color: .black.opacity(0.05), radius: 2, x: 0, y: 1)
+        .glassmorphismListRow()
     }
     
     private func formatTime(_ timeString: String) -> String {

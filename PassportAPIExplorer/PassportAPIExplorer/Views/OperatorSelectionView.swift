@@ -23,93 +23,89 @@ struct OperatorSelectionView: View {
                     VStack(spacing: 20) {
                         Image(systemName: "building.2")
                             .font(.system(size: 50))
-                            .foregroundColor(.gray)
+                            .foregroundColor(.glassTextSecondary)
                         
                         VStack(spacing: 8) {
                             Text("No Operators")
                                 .font(.headline)
-                                .foregroundColor(.gray)
+                                .foregroundColor(.glassTextPrimary)
                             Text("Add your first operator to get started")
                                 .font(.subheadline)
-                                .foregroundColor(.secondary)
+                                .foregroundColor(.glassTextSecondary)
                                 .multilineTextAlignment(.center)
                         }
                         
                         Button("Add Operator") {
                             showingAddOperator = true
                         }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(GlassmorphismButtonStyle(isPrimary: true))
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .glassmorphismCard()
+                    .padding()
                 } else {
-                    List {
-                        ForEach(operators) { op in
-                            NavigationLink(destination: OperatorView(selectedOperator: op)) {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    HStack {
-                                        Text(op.name)
-                                            .font(.headline)
-                                        Spacer()
-                                        Text(op.environment?.rawValue.capitalized ?? "Unknown")
+                    ScrollView {
+                        LazyVStack(spacing: 16) {
+                            ForEach(operators) { op in
+                                NavigationLink(destination: OperatorView(selectedOperator: op)) {
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        HStack {
+                                            Text(op.name)
+                                                .font(.headline)
+                                                .foregroundColor(.glassTextPrimary)
+                                            Spacer()
+                                            Text(op.environment?.rawValue.capitalized ?? "Unknown")
+                                                .font(.caption)
+                                                .padding(.horizontal, 8)
+                                                .padding(.vertical, 4)
+                                                .background(environmentColor(for: op.environment ?? .production))
+                                                .foregroundColor(.white)
+                                                .cornerRadius(8)
+                                        }
+                                        Text("ID: \(op.id)")
                                             .font(.caption)
-                                            .padding(.horizontal, 8)
-                                            .padding(.vertical, 4)
-                                            .background(environmentColor(for: op.environment ?? .production))
-                                            .foregroundColor(.white)
-                                            .cornerRadius(8)
+                                            .foregroundColor(.glassTextSecondary)
                                     }
-                                    Text("ID: \(op.id)")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 12)
                                 }
-                                .padding(.vertical, 4)
-                            }
-                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                // Delete action
-                                Button(role: .destructive) {
-                                    dataService?.deleteOperator(op)
-                                } label: {
-                                    VStack(spacing: 4) {
-                                        Image(systemName: "trash")
-                                            .font(.system(size: 16, weight: .medium))
-                                        Text("Delete")
-                                            .font(.caption2)
-                                            .fontWeight(.medium)
+                                .glassmorphismCard()
+                                .buttonStyle(PlainButtonStyle())
+                                .contextMenu {
+                                    Button(role: .destructive) {
+                                        dataService?.deleteOperator(op)
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
                                     }
-                                    .frame(minWidth: 60)
-                                    .padding(.vertical, 8)
-                                }
-                                
-                                // Edit action
-                                Button {
-                                    operatorToEdit = op
-                                } label: {
-                                    VStack(spacing: 4) {
-                                        Image(systemName: "pencil")
-                                            .font(.system(size: 16, weight: .medium))
-                                        Text("Edit")
-                                            .font(.caption2)
-                                            .fontWeight(.medium)
+                                    
+                                    Button {
+                                        operatorToEdit = op
+                                    } label: {
+                                        Label("Edit", systemImage: "pencil")
                                     }
-                                    .frame(minWidth: 60)
-                                    .padding(.vertical, 8)
                                 }
-                                .tint(.blue)
                             }
                         }
+                        .padding(.horizontal, 16)
+                        .padding(.top, 8)
+                        .padding(.bottom, 20)
                     }
+                    .scrollContentBackground(.hidden)
                     .refreshable {
                         await refreshOperators()
                     }
                 }
             }
             .navigationTitle(isRefreshing ? "Refreshing..." : "Operators")
+            .glassmorphismNavigation()
+            .glassmorphismBackground()
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: {
                         showingAddOperator = true
                     }) {
                         Image(systemName: "plus")
+                            .foregroundColor(.glassTextPrimary)
                     }
                 }
             }

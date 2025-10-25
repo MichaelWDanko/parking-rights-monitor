@@ -18,6 +18,7 @@ struct TokenTestView: View {
         VStack(spacing: 20) {
             Text("Token Test")
                 .font(.title)
+                .foregroundColor(.glassTextPrimary)
             
             Button("Get Access Token") {
                 Task {
@@ -25,30 +26,41 @@ struct TokenTestView: View {
                 }
             }
             .disabled(isLoading)
+            .buttonStyle(GlassmorphismButtonStyle(isPrimary: true))
             
             if isLoading {
                 ProgressView("Loading token...")
+                    .foregroundColor(.glassTextPrimary)
             }
             
             if let error = errorMessage {
-                Text("Error: \(error)")
-                    .foregroundColor(.red)
-                    .padding()
+                VStack(spacing: 8) {
+                    Text("Error: \(error)")
+                        .foregroundColor(.cyanAccent)
+                        .padding()
+                }
+                .glassmorphismCard()
+                .padding()
             }
             
             if !token.isEmpty {
-                VStack(alignment: .leading) {
+                VStack(alignment: .leading, spacing: 8) {
                     Text("Token:")
                         .font(.headline)
+                        .foregroundColor(.glassTextPrimary)
                     Text(token)
                         .font(.caption)
+                        .foregroundColor(.glassTextSecondary)
                         .padding()
-                        .background(Color.gray.opacity(0.1))
-                        .cornerRadius(8)
+                        .glassmorphismCard()
                 }
+                .padding()
             }
         }
         .padding()
+        .glassmorphismBackground()
+        .navigationTitle("Token Test")
+        .glassmorphismNavigation()
     }
 
     private func fetchToken() async {

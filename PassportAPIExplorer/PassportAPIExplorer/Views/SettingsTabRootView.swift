@@ -21,17 +21,23 @@ struct SettingsTabRootView: View {
                     NavigationLink("Token Test", destination: TokenTestView(passportAPIService: passportAPIService))
                     NavigationLink("iCloud Test", destination: iCloudTestView())
                 }
+                .listRowBackground(Color.glassBackground)
                 
                 Section("About") {
                     HStack {
                         Text("Version")
+                            .foregroundColor(.glassTextPrimary)
                         Spacer()
                         Text("1.0.0")
-                            .foregroundColor(.secondary)
+                            .foregroundColor(.glassTextSecondary)
                     }
                 }
+                .listRowBackground(Color.glassBackground)
             }
+            .scrollContentBackground(.hidden)
             .navigationTitle("Settings")
+            .glassmorphismNavigation()
+            .glassmorphismBackground()
         }
     }
 }
