@@ -1,6 +1,6 @@
 //
 //  ParkingRightView.swift
-//  PRMonitor
+//  Passport API Explorer
 //
 //  Created by Michael Danko on 10/6/25.
 //
@@ -67,11 +67,6 @@ struct ParkingRightView: View {
                     }
                 }
             }
-            
-            // Chevron
-            Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundColor(.secondary)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)

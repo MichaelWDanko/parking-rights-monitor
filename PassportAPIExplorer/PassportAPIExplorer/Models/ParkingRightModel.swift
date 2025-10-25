@@ -1,6 +1,6 @@
 //
 //  ParkingRightModel.swift
-//  PRMonitor
+//  Passport API Explorer
 //
 //  Created by Michael Danko on 10/6/25.
 //

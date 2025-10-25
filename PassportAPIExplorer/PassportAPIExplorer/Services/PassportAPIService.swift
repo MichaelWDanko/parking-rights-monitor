@@ -1,6 +1,6 @@
 //
 //  PassportAPIService.swift
-//  PRMonitor
+//  Passport API Explorer
 //
 //  Created by Michael Danko on 10/21/25.
 //
@@ -38,6 +38,7 @@ enum SecretsLoader {
 
 // MARK: - Token Management
 
+@MainActor
 private struct OAuthTokenResponse: Decodable {
     let access_token: String
     let token_type: String
@@ -202,6 +203,7 @@ final class PassportAPIService: ObservableObject {
     }
     
     /// Debug method to test OAuth token endpoint and see raw response
+    @MainActor
     func debugTokenEndpoint() async throws -> String {
         let secrets = try SecretsLoader.load()
         let config = OAuthConfiguration(

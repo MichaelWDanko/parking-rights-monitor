@@ -1,13 +1,14 @@
 //
 //  OperatorModel.swift
-//  PRMonitor
+//  Passport API Explorer
 //
 //  Created by Michael Danko on 10/5/25.
 //
 
 import Foundation
+import SwiftData
 
-enum Environment : String, Codable {
+enum OperatorEnvironment : String, Codable, CaseIterable {
     case production
     case staging
     case development
@@ -44,27 +45,27 @@ struct Zone : Identifiable, Codable {
     }
 }
 
-struct Operator: Identifiable, Codable {
-    let id: UUID
-    let name: String
-    let environment: Environment
+@Model
+class Operator: Identifiable {
+    var id: String = ""
+    var name: String = ""
+    var environment: OperatorEnvironment?
+    var dateCreated: Date = Date()
     
-    init(name: String) {
-        self.id = UUID()
-        self.name = name
-        self.environment = .production
-        print("Creating a new operator: \(self.name) - \(self.id)")
-    }
-    
-    init(id: UUID, name: String) {
-        self.id = id
-        self.name = name
-        self.environment = .production
-    }
-
-    init(id: UUID, name: String, environment: Environment) {
-        self.id = id
+    init(name: String, id: String? = nil, environment: OperatorEnvironment = .production) {
+        self.id = id ?? UUID().uuidString
         self.name = name
         self.environment = environment
+        self.dateCreated = Date()
+        print("Creating a new operator: \(self.name) - ID: \(self.id)")
+    }
+    
+    // Convenience initializer for UUID compatibility
+    init(name: String, uuid: UUID, environment: OperatorEnvironment = .production) {
+        self.id = uuid.uuidString
+        self.name = name
+        self.environment = environment
+        self.dateCreated = Date()
+        print("Creating a new operator: \(self.name) - ID: \(self.id)")
     }
 }
