@@ -17,7 +17,7 @@ struct ParkingRightView: View {
         HStack(spacing: 12) {
             // Status indicator
             Circle()
-                .fill(Color.cyanAccent)
+                .fill(statusColor)
                 .frame(width: 8, height: 8)
                 .onAppear {
                     print("🚗 ParkingRightView: Displaying \(pr.vehicle_plate ?? "N/A")")
@@ -74,6 +74,37 @@ struct ParkingRightView: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
         .adaptiveGlassmorphismListRow()
+    }
+    
+    // Computed property to determine status color based on expiration time
+    private var statusColor: Color {
+        let now = Date()
+        let endTime = parseEndTime(pr.end_time)
+        
+        // If we can't parse the end time, default to green
+        guard let endDate = endTime else {
+            return .green
+        }
+        
+        // Calculate time difference in minutes
+        let timeDifference = endDate.timeIntervalSince(now) / 60
+        
+        // If expires within 10 minutes, show orange; otherwise green
+        return timeDifference <= 10 ? .orange : .green
+    }
+    
+    private func parseEndTime(_ timeString: String) -> Date? {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        
+        // Try parsing with fractional seconds first
+        if let date = formatter.date(from: timeString) {
+            return date
+        }
+        
+        // Fallback: try without fractional seconds
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter.date(from: timeString)
     }
     
     private func formatTime(_ timeString: String) -> String {
