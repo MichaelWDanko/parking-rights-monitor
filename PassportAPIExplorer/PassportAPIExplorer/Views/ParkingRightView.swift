@@ -70,9 +70,11 @@ struct ParkingRightView: View {
                     }
                 }
                 HStack {
-                    Text(pr.timeRemainingDescription)
-                        .font(.caption)
-                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
+                    TimelineView(.periodic(from: Date(), by: 1.0)) { context in
+                        Text(pr.timeRemainingDescription)
+                            .font(.caption)
+                            .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
+                    }
                     Spacer()
                 }
             }
