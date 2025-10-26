@@ -372,11 +372,7 @@ final class PassportAPIService: ObservableObject {
             let response = try await performAuthenticatedRequest(url: url, responseType: ParkingRightsResponse.self)
             print("🚗 API returned \(response.data.count) parking rights")
             for (index, parkingRight) in response.data.enumerated() {
-                print("🚗 Parking Right \(index + 1): \(parkingRight.id)")
-                print("🔍 Getting vehicle_plate: \(parkingRight.vehicle_plate ?? "nil")")
-                print("🚗   - Vehicle: \(parkingRight.vehicle_plate ?? "N/A") (\(parkingRight.vehicle_state ?? "N/A"))")
-                print("🚗   - Time: \(parkingRight.start_time) to \(parkingRight.end_time)")
-                print("🚗   - Reference: \(parkingRight.reference_id ?? "N/A")")
+                print("🚗 Parking Right \(index + 1): ID=\(parkingRight.id), Vehicle=\(parkingRight.vehicle_plate ?? "N/A") (\(parkingRight.vehicle_state ?? "N/A")), Time=\(parkingRight.start_time) to \(parkingRight.end_time), Ref=\(parkingRight.reference_id ?? "N/A")")
             }
             return response.data
         } catch {
@@ -420,7 +416,6 @@ final class PassportAPIService: ObservableObject {
         
         do {
             let result = try decoder.decode(responseType, from: data)
-            print("🔍 Successfully decoded \(responseType)")
             return result
         } catch {
             print("🔍 JSON Decoding failed: \(error)")

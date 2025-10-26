@@ -25,8 +25,7 @@ struct Vehicle: Codable {
         
         vehiclePlate = try container.decodeIfPresent(String.self, forKey: .vehiclePlate)
         vehicleState = try container.decodeIfPresent(String.self, forKey: .vehicleState)
-        
-        print("🔍 Vehicle decoded - plate: \(vehiclePlate ?? "nil"), state: \(vehicleState ?? "nil")")
+    
     }
     
     // Manual initializer
@@ -48,12 +47,10 @@ struct ParkingRight: Identifiable, Codable {
     let spaceNumber: String?
     
     // Computed properties for backward compatibility
-    var vehicle_plate: String? { 
-        print("🔍 Getting vehicle_plate: \(vehicle?.vehicle_plate ?? "nil")")
+    var vehicle_plate: String? {
         return vehicle?.vehicle_plate 
     }
     var vehicle_state: String? { 
-        print("🔍 Getting vehicle_state: \(vehicle?.vehicle_state ?? "nil")")
         return vehicle?.vehicle_state 
     }
     
@@ -82,44 +79,45 @@ struct ParkingRight: Identifiable, Codable {
         self.spaceNumber = spaceNumber
     }
     
-    var timeRemainingDescription: String {
-        
+    var timeRemainingInSeconds: TimeInterval {
         let isoDateFormatter = ISO8601DateFormatter()
-        isoDateFormatter.formatOptions = [.withInternetDateTime]
+        isoDateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         
         guard let formattedEndDate = isoDateFormatter.date(from: endTime) else {
-            return "Invalid end time"
+            // Try without fractional seconds
+            isoDateFormatter.formatOptions = [.withInternetDateTime]
+            guard let formattedEndDate = isoDateFormatter.date(from: endTime) else {
+                return 0
+            }
+            return formattedEndDate.timeIntervalSince(Date())
         }
         
-        if formattedEndDate <= Date() {
+        return formattedEndDate.timeIntervalSince(Date())
+    }
+    
+    var timeRemainingDescription: String {
+        if timeRemainingInSeconds <= 0 {
             return "Expired"
         }
         
-        let remainingTime = Calendar.current.dateComponents(
-            [.day, .hour, .minute, .second],
-            from: Date.now,
-            to: formattedEndDate
-        )
+        let totalSeconds = Int(timeRemainingInSeconds)
+        let days = totalSeconds / 86400
+        let hours = (totalSeconds % 86400) / 3600
+        let minutes = (totalSeconds % 3600) / 60
+        let seconds = totalSeconds % 60
         
-        if let days = remainingTime.day, days > 0 {
-            let hours = remainingTime.hour ?? 0
+        if days > 0 {
             return "\(days) day\(days == 1 ? "" : "s"), \(hours) hour\(hours == 1 ? "" : "s")"
         }
-                
-        if let hours = remainingTime.hour, hours > 0 {
-            let minutes = remainingTime.minute ?? 0
+        
+        if hours > 0 {
             return "\(hours) hour\(hours == 1 ? "" : "s"), \(minutes) minute\(minutes == 1 ? "" : "s")"
         }
         
-        if let minutes = remainingTime.minute, minutes > 0 {
-            let seconds = remainingTime.second ?? 0
+        if minutes > 0 {
             return "\(minutes) minute\(minutes == 1 ? "" : "s"), \(seconds) second\(seconds == 1 ? "" : "s")"
         }
         
-        if let seconds = remainingTime.second, seconds > 0 {
-            return "\(seconds) second\(seconds == 1 ? "" : "s")"
-        }
-        
-        return "Expired"
+        return "\(seconds) second\(seconds == 1 ? "" : "s")"
     }
 }
