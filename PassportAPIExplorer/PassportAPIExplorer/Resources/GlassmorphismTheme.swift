@@ -74,15 +74,15 @@ extension Color {
     }
     
     static func adaptiveGlassBackground(_ isDark: Bool) -> Color {
-        return isDark ? Color.white.opacity(0.1) : Color.black.opacity(0.1)
+        return isDark ? Color.white.opacity(0.1) : Color.white.opacity(0.8)
     }
     
     static func adaptiveGlassBackgroundLight(_ isDark: Bool) -> Color {
-        return isDark ? Color.white.opacity(0.15) : Color.black.opacity(0.15)
+        return isDark ? Color.white.opacity(0.15) : Color.white.opacity(0.9)
     }
     
     static func adaptiveGlassBackgroundDark(_ isDark: Bool) -> Color {
-        return isDark ? Color.white.opacity(0.05) : Color.black.opacity(0.05)
+        return isDark ? Color.white.opacity(0.05) : Color.white.opacity(0.7)
     }
     
     static func adaptiveTextPrimary(_ isDark: Bool) -> Color {

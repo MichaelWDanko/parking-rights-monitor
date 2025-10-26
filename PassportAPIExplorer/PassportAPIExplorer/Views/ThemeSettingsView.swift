@@ -11,6 +11,7 @@ struct ThemeSettingsView: View {
     @AppStorage("selectedThemeMode") private var selectedThemeMode: ThemeMode = .auto
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) var colorScheme
+    @State private var currentTheme: ThemeMode = .auto
     
     var body: some View {
         NavigationStack {
@@ -60,7 +61,10 @@ struct ThemeSettingsView: View {
                     VStack(spacing: 8) {
                         ForEach(ThemeMode.allCases, id: \.self) { mode in
                             Button(action: {
-                                selectedThemeMode = mode
+                                withAnimation(.easeInOut(duration: 0.3)) {
+                                    currentTheme = mode
+                                    selectedThemeMode = mode
+                                }
                             }) {
                                 HStack {
                                     VStack(alignment: .leading, spacing: 4) {
@@ -75,7 +79,7 @@ struct ThemeSettingsView: View {
                                     
                                     Spacer()
                                     
-                                    if selectedThemeMode == mode {
+                                    if currentTheme == mode {
                                         Image(systemName: "checkmark.circle.fill")
                                             .foregroundColor(Color.cyanAccent)
                                     }
@@ -94,6 +98,7 @@ struct ThemeSettingsView: View {
                 Spacer()
             }
             .adaptiveGlassmorphismBackground()
+            .adaptiveGlassmorphismNavigation()
             .navigationTitle("Theme Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -104,6 +109,10 @@ struct ThemeSettingsView: View {
                     .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
                 }
             }
+        }
+        .preferredColorScheme(currentTheme.preferredColorScheme)
+        .onAppear {
+            currentTheme = selectedThemeMode
         }
     }
     
