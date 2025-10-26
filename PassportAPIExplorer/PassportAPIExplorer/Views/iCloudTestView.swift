@@ -10,6 +10,8 @@ import SwiftData
 
 struct iCloudTestView: View {
     @Environment(\.modelContext) private var modelContext
+    @AppStorage("selectedThemeMode") private var selectedThemeMode: ThemeMode = .auto
+    @Environment(\.colorScheme) var colorScheme
     @Query private var operators: [Operator]
     @State private var dataService: OperatorDataService?
     @State private var testOperatorName = "iCloud Test Operator"
@@ -21,53 +23,57 @@ struct iCloudTestView: View {
                     Text("iCloud Sync Test")
                         .font(.title2)
                         .fontWeight(.bold)
+                        .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
                     
                     Text("This view helps test iCloud synchronization. Add a test operator and check if it appears on other devices.")
                         .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .padding()
+                .adaptiveGlassmorphismCard()
                 .padding()
                 
                 VStack(spacing: 16) {
                     TextField("Test Operator Name", text: $testOperatorName)
-                        .textFieldStyle(.roundedBorder)
+                        .adaptiveGlassmorphismTextField()
                     
                     Button("Add Test Operator") {
                         addTestOperator()
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(GlassmorphismButtonStyle(isPrimary: true))
                     .disabled(testOperatorName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     
                     if !operators.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Current Operators (\(operators.count))")
                                 .font(.headline)
+                                .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
                             
                             ForEach(operators) { op in
                                 HStack {
                                     VStack(alignment: .leading) {
                                         Text(op.name)
                                             .font(.subheadline)
+                                            .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
                                         Text("ID: \(op.id)")
                                             .font(.caption)
-                                            .foregroundColor(.secondary)
+                                            .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                                     }
                                     Spacer()
                                     Text(op.environment?.rawValue.capitalized ?? "Unknown")
                                         .font(.caption)
                                         .padding(.horizontal, 8)
                                         .padding(.vertical, 4)
-                                        .background(Color.blue)
-                                        .foregroundColor(.white)
+                                        .background(Color.cyanAccent)
+                                        .foregroundColor(.navyBlue)
                                         .cornerRadius(4)
                                 }
                                 .padding(.vertical, 4)
                             }
                         }
                         .padding()
-                        .background(Color(.systemGray6))
-                        .cornerRadius(8)
+                        .adaptiveGlassmorphismCard()
                     }
                 }
                 .padding()
@@ -77,25 +83,28 @@ struct iCloudTestView: View {
                 VStack(spacing: 8) {
                     Text("iCloud Status")
                         .font(.headline)
+                        .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
                     
                     HStack {
                         Image(systemName: "externaldrive")
-                            .foregroundColor(.blue)
+                            .foregroundColor(.cyanAccent)
                         Text("SwiftData enabled (local storage)")
                             .font(.subheadline)
+                            .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                     }
                     
                     Text("iCloud sync can be enabled later in project settings")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                         .multilineTextAlignment(.center)
                 }
                 .padding()
-                .background(Color(.systemGray6))
-                .cornerRadius(8)
+                .adaptiveGlassmorphismCard()
                 .padding()
             }
             .navigationTitle("iCloud Test")
+.adaptiveGlassmorphismNavigation()
+.adaptiveGlassmorphismBackground()
             .onAppear {
                 if dataService == nil {
                     dataService = OperatorDataService(modelContext: modelContext)

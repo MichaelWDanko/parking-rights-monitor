@@ -11,6 +11,8 @@ import SwiftData
 struct AddOperatorView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @AppStorage("selectedThemeMode") private var selectedThemeMode: ThemeMode = .auto
+    @Environment(\.colorScheme) var colorScheme
     
     @State private var operatorName = ""
     @State private var operatorIdString = ""
@@ -22,12 +24,12 @@ struct AddOperatorView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section(header: Text("Operator Details")) {
+                Section(header: Text("Operator Details").foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))) {
                     TextField("Operator Name", text: $operatorName)
-                        .textFieldStyle(.roundedBorder)
+                        .adaptiveGlassmorphismTextField()
                     
                     TextField("Operator ID (UUID)", text: $operatorIdString)
-                        .textFieldStyle(.roundedBorder)
+                        .adaptiveGlassmorphismTextField()
                         .autocapitalization(.none)
                         .disableAutocorrection(true)
                     
@@ -39,18 +41,24 @@ struct AddOperatorView: View {
                     }
                     .pickerStyle(.segmented)
                 }
+                .listRowBackground(Color.glassBackground)
                 
-                Section(footer: Text("The operator ID is the UUID that will be passed to your API. The operator will be saved locally and synced to iCloud if enabled.")) {
+                Section(footer: Text("The operator ID is the UUID that will be passed to your API. The operator will be saved locally and synced to iCloud if enabled.").foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))) {
                     EmptyView()
                 }
+                .listRowBackground(Color.glassBackground)
             }
+            .scrollContentBackground(.hidden)
             .navigationTitle("Add Operator")
             .navigationBarTitleDisplayMode(.inline)
+.adaptiveGlassmorphismNavigation()
+.adaptiveGlassmorphismBackground()
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
                         dismiss()
                     }
+                    .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -58,6 +66,7 @@ struct AddOperatorView: View {
                         saveOperator()
                     }
                     .disabled(operatorName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || operatorIdString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
                 }
             }
             .onAppear {

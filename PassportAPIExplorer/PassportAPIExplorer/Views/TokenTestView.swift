@@ -11,6 +11,8 @@ struct TokenTestView: View {
     @State private var token: String = ""
     @State private var isLoading = false
     @State private var errorMessage: String?
+    @AppStorage("selectedThemeMode") private var selectedThemeMode: ThemeMode = .auto
+    @Environment(\.colorScheme) var colorScheme
 
     let passportAPIService: PassportAPIService
 
@@ -18,6 +20,7 @@ struct TokenTestView: View {
         VStack(spacing: 20) {
             Text("Token Test")
                 .font(.title)
+                .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
             
             Button("Get Access Token") {
                 Task {
@@ -25,30 +28,41 @@ struct TokenTestView: View {
                 }
             }
             .disabled(isLoading)
+            .buttonStyle(GlassmorphismButtonStyle(isPrimary: true))
             
             if isLoading {
                 ProgressView("Loading token...")
+                    .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
             }
             
             if let error = errorMessage {
-                Text("Error: \(error)")
-                    .foregroundColor(.red)
-                    .padding()
+                VStack(spacing: 8) {
+                    Text("Error: \(error)")
+                        .foregroundColor(.cyanAccent)
+                        .padding()
+                }
+                .adaptiveGlassmorphismCard()
+                .padding()
             }
             
             if !token.isEmpty {
-                VStack(alignment: .leading) {
+                VStack(alignment: .leading, spacing: 8) {
                     Text("Token:")
                         .font(.headline)
+                        .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
                     Text(token)
                         .font(.caption)
+                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                         .padding()
-                        .background(Color.gray.opacity(0.1))
-                        .cornerRadius(8)
+                        .adaptiveGlassmorphismCard()
                 }
+                .padding()
             }
         }
         .padding()
+        .adaptiveGlassmorphismBackground()
+        .navigationTitle("Token Test")
+        .adaptiveGlassmorphismNavigation()
     }
 
     private func fetchToken() async {

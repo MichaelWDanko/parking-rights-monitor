@@ -10,6 +10,8 @@ import SwiftData
 
 struct OperatorSelectionView: View {
     @Environment(\.modelContext) private var modelContext
+    @AppStorage("selectedThemeMode") private var selectedThemeMode: ThemeMode = .auto
+    @Environment(\.colorScheme) var colorScheme
     @Query private var operators: [Operator]
     @State private var showingAddOperator = false
     @State private var operatorToEdit: Operator?
@@ -23,80 +25,72 @@ struct OperatorSelectionView: View {
                     VStack(spacing: 20) {
                         Image(systemName: "building.2")
                             .font(.system(size: 50))
-                            .foregroundColor(.gray)
+                            .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                         
                         VStack(spacing: 8) {
                             Text("No Operators")
                                 .font(.headline)
-                                .foregroundColor(.gray)
+                                .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
                             Text("Add your first operator to get started")
                                 .font(.subheadline)
-                                .foregroundColor(.secondary)
+                                .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                                 .multilineTextAlignment(.center)
                         }
                         
                         Button("Add Operator") {
                             showingAddOperator = true
                         }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(GlassmorphismButtonStyle(isPrimary: true))
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .adaptiveGlassmorphismCard()
+                    .padding()
                 } else {
-                    List {
-                        ForEach(operators) { op in
-                            NavigationLink(destination: OperatorView(selectedOperator: op)) {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    HStack {
-                                        Text(op.name)
-                                            .font(.headline)
-                                        Spacer()
-                                        Text(op.environment?.rawValue.capitalized ?? "Unknown")
+                    ScrollView {
+                        LazyVStack(spacing: 8) {
+                            ForEach(operators) { op in
+                                NavigationLink(destination: OperatorView(selectedOperator: op)) {
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        HStack {
+                                            Text(op.name)
+                                                .font(.headline)
+                                                .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
+                                            Spacer()
+                                            Text(op.environment?.rawValue.capitalized ?? "Unknown")
+                                                .font(.caption)
+                                                .padding(.horizontal, 8)
+                                                .padding(.vertical, 4)
+                                                .background(environmentColor(for: op.environment ?? .production))
+                                                .foregroundColor(.white)
+                                                .cornerRadius(8)
+                                        }
+                                        Text("ID: \(op.id)")
                                             .font(.caption)
-                                            .padding(.horizontal, 8)
-                                            .padding(.vertical, 4)
-                                            .background(environmentColor(for: op.environment ?? .production))
-                                            .foregroundColor(.white)
-                                            .cornerRadius(8)
+                                            .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                                     }
-                                    Text("ID: \(op.id)")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 12)
                                 }
-                                .padding(.vertical, 4)
-                            }
-                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                // Delete action
-                                Button(role: .destructive) {
-                                    dataService?.deleteOperator(op)
-                                } label: {
-                                    VStack(spacing: 4) {
-                                        Image(systemName: "trash")
-                                            .font(.system(size: 16, weight: .medium))
-                                        Text("Delete")
-                                            .font(.caption2)
-                                            .fontWeight(.medium)
+                                .adaptiveGlassmorphismListRow()
+                                .buttonStyle(PlainButtonStyle())
+                                .contextMenu {
+                                    Button(role: .destructive) {
+                                        dataService?.deleteOperator(op)
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
                                     }
-                                    .frame(minWidth: 60)
-                                    .padding(.vertical, 8)
-                                }
-                                
-                                // Edit action
-                                Button {
-                                    operatorToEdit = op
-                                } label: {
-                                    VStack(spacing: 4) {
-                                        Image(systemName: "pencil")
-                                            .font(.system(size: 16, weight: .medium))
-                                        Text("Edit")
-                                            .font(.caption2)
-                                            .fontWeight(.medium)
+                                    
+                                    Button {
+                                        operatorToEdit = op
+                                    } label: {
+                                        Label("Edit", systemImage: "pencil")
                                     }
-                                    .frame(minWidth: 60)
-                                    .padding(.vertical, 8)
                                 }
-                                .tint(.blue)
                             }
                         }
+                        .padding(.horizontal, 16)
+                        .padding(.top, 16)
+                        .padding(.bottom, 20)
                     }
                     .refreshable {
                         await refreshOperators()
@@ -104,12 +98,15 @@ struct OperatorSelectionView: View {
                 }
             }
             .navigationTitle(isRefreshing ? "Refreshing..." : "Operators")
+            .adaptiveGlassmorphismNavigation()
+            .adaptiveGlassmorphismBackground()
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: {
                         showingAddOperator = true
                     }) {
                         Image(systemName: "plus")
+                            .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
                     }
                 }
             }
