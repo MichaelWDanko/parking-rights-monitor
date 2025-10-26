@@ -169,6 +169,7 @@ struct OperatorView: View {
                                 }
                                 .padding(.horizontal, 16)
                                 .padding(.vertical, 10)
+                                .contentShape(Rectangle())
                             }
                             .adaptiveGlassmorphismListRow()
                             .buttonStyle(PlainButtonStyle())
