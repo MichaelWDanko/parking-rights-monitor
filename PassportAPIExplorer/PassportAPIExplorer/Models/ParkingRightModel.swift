@@ -81,4 +81,45 @@ struct ParkingRight: Identifiable, Codable {
         self.referenceId = referenceId
         self.spaceNumber = spaceNumber
     }
+    
+    var timeRemainingDescription: String {
+        
+        let isoDateFormatter = ISO8601DateFormatter()
+        isoDateFormatter.formatOptions = [.withInternetDateTime]
+        
+        guard let formattedEndDate = isoDateFormatter.date(from: endTime) else {
+            return "Invalid end time"
+        }
+        
+        if formattedEndDate <= Date() {
+            return "Expired"
+        }
+        
+        let remainingTime = Calendar.current.dateComponents(
+            [.day, .hour, .minute, .second],
+            from: Date.now,
+            to: formattedEndDate
+        )
+        
+        if let days = remainingTime.day, days > 0 {
+            let hours = remainingTime.hour ?? 0
+            return "\(days) day\(days == 1 ? "" : "s"), \(hours) hour\(hours == 1 ? "" : "s")"
+        }
+                
+        if let hours = remainingTime.hour, hours > 0 {
+            let minutes = remainingTime.minute ?? 0
+            return "\(hours) hour\(hours == 1 ? "" : "s"), \(minutes) minute\(minutes == 1 ? "" : "s")"
+        }
+        
+        if let minutes = remainingTime.minute, minutes > 0 {
+            let seconds = remainingTime.second ?? 0
+            return "\(minutes) minute\(minutes == 1 ? "" : "s"), \(seconds) second\(seconds == 1 ? "" : "s")"
+        }
+        
+        if let seconds = remainingTime.second, seconds > 0 {
+            return "\(seconds) second\(seconds == 1 ? "" : "s")"
+        }
+        
+        return "Expired"
+    }
 }

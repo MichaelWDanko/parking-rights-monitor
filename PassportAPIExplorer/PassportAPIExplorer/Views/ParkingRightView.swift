@@ -69,6 +69,12 @@ struct ParkingRightView: View {
                             .cornerRadius(4)
                     }
                 }
+                HStack {
+                    Text(pr.timeRemainingDescription)
+                        .font(.caption)
+                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
+                    Spacer()
+                }
             }
         }
         .padding(.horizontal, 16)
