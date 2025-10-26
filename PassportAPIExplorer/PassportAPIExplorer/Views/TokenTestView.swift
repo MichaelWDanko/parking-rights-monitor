@@ -62,7 +62,7 @@ struct TokenTestView: View {
         .padding()
         .adaptiveGlassmorphismBackground()
         .navigationTitle("Token Test")
-        .glassmorphismNavigation()
+        .adaptiveGlassmorphismNavigation()
     }
 
     private func fetchToken() async {

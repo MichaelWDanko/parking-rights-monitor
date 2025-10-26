@@ -148,10 +148,16 @@ struct ParkingRightListView: View {
                 .adaptiveGlassmorphismCard()
                 .padding()
             } else {
-                List(filteredRights) { parkingRight in
-                    ParkingRightView(pr: parkingRight)
+                ScrollView {
+                    LazyVStack(spacing: 8) {
+                        ForEach(filteredRights) { parkingRight in
+                            ParkingRightView(pr: parkingRight)
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 16)
+                    .padding(.bottom, 20)
                 }
-                .scrollContentBackground(.hidden)
                 .onAppear {
                     print("🚗 UI: Displaying \(filteredRights.count) parking rights")
                     for (index, right) in filteredRights.enumerated() {
@@ -163,7 +169,7 @@ struct ParkingRightListView: View {
         .adaptiveGlassmorphismBackground()
         .navigationTitle(zone.name)
         .navigationBarTitleDisplayMode(.inline)
-        .glassmorphismNavigation()
+        .adaptiveGlassmorphismNavigation()
         .onAppear {
             loadParkingRights()
         }
