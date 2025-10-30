@@ -135,22 +135,37 @@ struct ParkingSessionEventView: View {
             }
             .scrollContentBackground(.hidden)
             
-            // Floating button
-        VStack {
-                Button(action: submitStartSession) {
-                    Label("Start Parking Session", systemImage: "play.circle.fill")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
+            // Floating button with frosted glass background
+            VStack(spacing: 0) {
+                // Button container
+                VStack {
+                    Button(action: submitStartSession) {
+                        Label("Start Parking Session", systemImage: "play.circle.fill")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(GlassmorphismButtonStyle(isPrimary: true))
+                    .disabled(!isStartFormValid)
+                    .opacity(isStartFormValid ? 1.0 : 0.5)
                 }
-                .buttonStyle(GlassmorphismButtonStyle(isPrimary: true))
-                .disabled(!isStartFormValid)
-                .opacity(isStartFormValid ? 1.0 : 0.5)
+                .padding()
+                
+                // Extra space to cover bottom safe area
+                Color.clear
+                    .frame(height: 0)
             }
-            .padding()
             .background(
-                RoundedRectangle(cornerRadius: 0)
-                    .fill(Color.adaptiveGlassBackground(colorScheme == .dark))
-                    .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: -5)
+                ZStack {
+                    // Frosted glass background
+                    Rectangle()
+                        .fill(.ultraThinMaterial)
+                    
+                    // Subtle tint overlay
+                    Rectangle()
+                        .fill(colorScheme == .dark ? Color.navyBlue.opacity(0.3) : Color.white.opacity(0.5))
+                }
+                .ignoresSafeArea(edges: .bottom)
+                .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: -5)
             )
         }
     }
@@ -185,6 +200,7 @@ struct ParkingSessionEventView: View {
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 16)
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .adaptiveGlassmorphismListRow()
@@ -237,20 +253,17 @@ struct ParkingSessionEventView: View {
                         .fontWeight(.semibold)
                         .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
                     
-                    // Operator and Zone names on one line
-                    HStack(spacing: 4) {
-                        if let operatorName = operators.first(where: { $0.id == session.operatorId })?.name {
-                            Text(operatorName)
-                                .font(.subheadline)
-                                .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                        }
-                        Text("•")
-                            .font(.caption)
-                            .foregroundColor(Color.adaptiveTextTertiary(colorScheme == .dark))
-                        Text(getZoneName(for: session))
+                    // Operator name
+                    if let operatorName = operators.first(where: { $0.id == session.operatorId })?.name {
+                        Text(operatorName)
                             .font(.subheadline)
                             .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                     }
+                    
+                    // Zone name (without ID)
+                    Text(getZoneName(for: session))
+                        .font(.subheadline)
+                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                 }
                 
                 Spacer()
@@ -971,14 +984,18 @@ struct ParkingSessionEventView: View {
     // MARK: - Helper Methods
     
     private func getZoneName(for session: ParkingSession) -> String {
-        // For external zone IDs, just show "External Zone"
-        if session.computedZoneIdType == .external {
-            return "External Zone"
+        // If we have a stored zone name, use it
+        if let zoneName = session.zoneName {
+            return zoneName
         }
         
-        // Try to find the zone name from available zones
-        // This is a simplified approach - in production you'd want to cache zone data
-        return "Zone \(session.zoneId.prefix(8))..."
+        // For external zone IDs, show the ID
+        if session.computedZoneIdType == .external {
+            return "External Zone: \(session.zoneId)"
+        }
+        
+        // No zone name available
+        return "Unknown Zone"
     }
     
     // MARK: - Actions
@@ -1043,6 +1060,7 @@ struct ParkingSessionEventView: View {
         let operatorId = op.id
         let zoneIdType: ZoneIDType = useExternalZoneId ? .external : .passport
         let zoneId: String = useExternalZoneId ? externalZoneId : (selectedZone?.id ?? "")
+        let zoneName: String? = useExternalZoneId ? nil : selectedZone?.name
         
         Task {
             do {
@@ -1058,6 +1076,7 @@ struct ParkingSessionEventView: View {
                     operatorId: operatorId,
                     zoneIdType: zoneIdType,
                     zoneId: zoneId,
+                    zoneName: zoneName,
                     vehiclePlate: vehiclePlate,
                     vehicleState: vehicleState,
                     vehicleCountry: vehicleCountry,

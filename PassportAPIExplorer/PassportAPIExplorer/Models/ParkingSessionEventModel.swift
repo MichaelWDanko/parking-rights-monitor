@@ -58,6 +58,7 @@ class ParkingSession: Identifiable {
     var operatorId: String = ""
     var zoneIdType: String = ZoneIDType.passport.rawValue  // Store as string for SwiftData
     var zoneId: String = ""
+    var zoneName: String?  // Optional zone name for display
     var vehiclePlate: String = ""
     var vehicleState: String = ""
     var vehicleCountry: String = "US"
@@ -72,6 +73,7 @@ class ParkingSession: Identifiable {
         operatorId: String,
         zoneIdType: ZoneIDType = .passport,
         zoneId: String,
+        zoneName: String? = nil,
         vehiclePlate: String,
         vehicleState: String,
         vehicleCountry: String = "US",
@@ -84,6 +86,7 @@ class ParkingSession: Identifiable {
         self.operatorId = operatorId
         self.zoneIdType = zoneIdType.rawValue
         self.zoneId = zoneId
+        self.zoneName = zoneName
         self.vehiclePlate = vehiclePlate
         self.vehicleState = vehicleState
         self.vehicleCountry = vehicleCountry

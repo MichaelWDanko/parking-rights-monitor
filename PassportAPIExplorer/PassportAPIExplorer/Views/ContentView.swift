@@ -33,7 +33,7 @@ struct ContentView: View {
                 OperatorSelectionView()
             }
             .tabItem {
-                Label("Monitor Parking Rights", systemImage: "network")
+                Label("Parking Rights", systemImage: "network")
             }
             .environmentObject(passportAPIService)
             
@@ -41,7 +41,7 @@ struct ContentView: View {
                 ParkingSessionEventView(apiService: passportAPIService, modelContext: modelContext)
             }
             .tabItem {
-                Label("Publish Events", systemImage: "square.and.arrow.up")
+                Label("Parking Events", systemImage: "paperplane.fill")
             }
             .environmentObject(passportAPIService)
             
