@@ -148,31 +148,7 @@ struct OperatorView: View {
                 ScrollView {
                     LazyVStack(spacing: 8) {
                         ForEach(viewModel?.filteredZones ?? []) { zone in
-                            NavigationLink(destination: ParkingRightListView(zone: zone, operatorId: selectedOperator.id)) {
-                                HStack {
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text(zone.name)
-                                            .font(.headline)
-                                            .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
-                                            .multilineTextAlignment(.leading)
-                                        Text("Zone #\(zone.number)")
-                                            .font(.subheadline)
-                                            .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                                    }
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    
-                                    Spacer()
-                                    
-                                    Image(systemName: "chevron.right")
-                                        .font(.caption)
-                                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                                }
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 10)
-                                .contentShape(Rectangle())
-                            }
-                            .adaptiveGlassmorphismListRow()
-                            .buttonStyle(PlainButtonStyle())
+                            ZoneCardView(zone: zone, operatorId: selectedOperator.id, colorScheme: colorScheme)
                         }
                     }
                     .padding(.horizontal, 16)
@@ -235,6 +211,48 @@ struct OperatorView: View {
         await MainActor.run {
             viewModel?.loadZones()
         }
+    }
+}
+
+struct ZoneCardView: View {
+    let zone: Zone
+    let operatorId: String
+    let colorScheme: ColorScheme
+    
+    @State private var isPressed = false
+    
+    var body: some View {
+        NavigationLink(destination: ParkingRightListView(zone: zone, operatorId: operatorId)) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(zone.name)
+                        .font(.headline)
+                        .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
+                        .multilineTextAlignment(.leading)
+                    Text("Zone #\(zone.number)")
+                        .font(.subheadline)
+                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                
+                Spacer()
+                
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .contentShape(Rectangle())
+        }
+        .adaptiveGlassmorphismListRow()
+        .buttonStyle(PlainButtonStyle())
+        .scaleEffect(isPressed ? 0.97 : 1.0)
+        .opacity(isPressed ? 0.8 : 1.0)
+        .animation(.easeInOut(duration: 0.1), value: isPressed)
+        .onLongPressGesture(minimumDuration: 0, pressing: { pressing in
+            isPressed = pressing
+        }, perform: {})
     }
 }
 
