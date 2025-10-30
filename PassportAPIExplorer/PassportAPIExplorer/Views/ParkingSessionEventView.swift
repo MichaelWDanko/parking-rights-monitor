@@ -13,9 +13,13 @@ struct ParkingSessionEventView: View {
     @EnvironmentObject var apiService: PassportAPIService
     @StateObject private var viewModel: ParkingSessionEventViewModel
     @Query private var operators: [Operator]
+    @Environment(\.colorScheme) var colorScheme
+    @AppStorage("selectedThemeMode") private var selectedThemeMode: ThemeMode = .auto
     
     @State private var selectedTab: EventTab = .start
     @State private var previewSessionId: String = ParkingSession.generateSessionId()
+    @State private var showingStartForm = false
+    @State private var sessionDetailModal: ParkingSession?
     
     // Start session fields
     @State private var selectedOperator: Operator?
@@ -57,49 +61,36 @@ struct ParkingSessionEventView: View {
     }
     
     var body: some View {
-        ZStack(alignment: .bottom) {
-            Form {
-                Section {
-                    Picker("Action", selection: $selectedTab) {
-                        ForEach(EventTab.allCases, id: \.self) { tab in
-                            Text(tab.rawValue).tag(tab)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .onChange(of: selectedTab) { _, newValue in
-                        // Update button time when switching to extend/stop
-                        if newValue == .extend || newValue == .stop {
-                            newEndTime = Date()
-                        }
-                    }
-                }
-                
-                switch selectedTab {
-                case .start:
-                    startSessionForm
-                case .extend:
-                    extendSessionForm
-                case .stop:
-                    stopSessionForm
-                }
-                
-                if !viewModel.sessions.isEmpty {
-                    sessionsList
-                }
-                
-                // Add padding at bottom for floating button
-                Section {
-                    Color.clear
-                        .frame(height: 80)
-                        .listRowBackground(Color.clear)
-                }
+        Group {
+            if viewModel.sessions.isEmpty {
+                // No sessions: Show start form directly
+                startFormView
+            } else {
+                // Has sessions: Show sessions list with start button
+                sessionsListView
             }
-            
-            // Floating button
-            floatingButton
         }
         .adaptiveGlassmorphismBackground()
-        .navigationTitle("Parking Session Events")
+        .adaptiveGlassmorphismNavigation()
+        .navigationTitle("Parking Sessions")
+        .navigationBarTitleDisplayMode(.large)
+        .sheet(isPresented: $showingStartForm) {
+            NavigationStack {
+                startFormView
+                    .navigationTitle("Start New Session")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .adaptiveGlassmorphismBackground()
+                    .adaptiveGlassmorphismNavigation()
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Cancel") {
+                                showingStartForm = false
+                            }
+                            .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
+                        }
+                    }
+            }
+        }
         .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
             Button("OK") { viewModel.clearMessages() }
         } message: {
@@ -127,51 +118,595 @@ struct ParkingSessionEventView: View {
         }
     }
     
+    // MARK: - Main Views
+    
     @ViewBuilder
-    private var floatingButton: some View {
+    private var startFormView: some View {
+        ZStack(alignment: .bottom) {
+            Form {
+                startSessionForm
+                
+                // Add padding at bottom for floating button
+                Section {
+                    Color.clear
+                        .frame(height: 80)
+                        .listRowBackground(Color.clear)
+                }
+            }
+            .scrollContentBackground(.hidden)
+            
+            // Floating button
         VStack {
-            switch selectedTab {
-            case .start:
                 Button(action: submitStartSession) {
                     Label("Start Parking Session", systemImage: "play.circle.fill")
                         .font(.headline)
-                        .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(isStartFormValid ? Color.blue : Color.gray)
-                        .cornerRadius(12)
                 }
+                .buttonStyle(GlassmorphismButtonStyle(isPrimary: true))
                 .disabled(!isStartFormValid)
-                
-            case .extend:
-                if selectedSession != nil {
-                    Button(action: submitExtendSession) {
-                        Label("Extend Session", systemImage: "clock.arrow.circlepath")
-                            .font(.headline)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.blue)
-                            .cornerRadius(12)
+                .opacity(isStartFormValid ? 1.0 : 0.5)
+            }
+            .padding()
+            .background(
+                RoundedRectangle(cornerRadius: 0)
+                    .fill(Color.adaptiveGlassBackground(colorScheme == .dark))
+                    .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: -5)
+            )
+        }
+    }
+    
+    @ViewBuilder
+    private var sessionsListView: some View {
+        ScrollView {
+            VStack(spacing: 16) {
+                // Start New Session Card Button
+                Button(action: {
+                    showingStartForm = true
+                }) {
+                    HStack {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.title2)
+                            .foregroundColor(Color.adaptiveCyanAccent(colorScheme == .dark))
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Start New Session")
+                                .font(.headline)
+                                .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
+                            Text("Create a new parking session")
+                                .font(.caption)
+                                .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
+                        }
+                        
+                        Spacer()
+                        
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                     }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 16)
                 }
+                .buttonStyle(.plain)
+                .adaptiveGlassmorphismListRow()
                 
-            case .stop:
-                if selectedSession != nil {
-                    Button(action: submitStopSession) {
-                        Label("Stop Session", systemImage: "stop.circle.fill")
-                            .font(.headline)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.red)
-                            .cornerRadius(12)
+                // Sessions Section
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Active Sessions")
+                        .font(.title2)
+                        .fontWeight(.semibold)
+                        .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
+                        .padding(.horizontal, 16)
+                    
+                    ForEach(viewModel.sessions.filter { $0.isActive }) { session in
+                        sessionCard(session)
+                    }
+                    
+                    if !viewModel.sessions.filter({ !$0.isActive }).isEmpty {
+                        Text("Completed Sessions")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                            .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
+                            .padding(.horizontal, 16)
+                            .padding(.top, 8)
+                        
+                        ForEach(viewModel.sessions.filter { !$0.isActive }) { session in
+                            sessionCard(session)
+                        }
                     }
                 }
             }
+            .padding(.horizontal, 16)
+            .padding(.top, 16)
+            .padding(.bottom, 20)
         }
-        .padding()
-        .background(.ultraThinMaterial)
+        .sheet(item: $sessionDetailModal) { session in
+            NavigationStack {
+                sessionDetailView(session)
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private func sessionCard(_ session: ParkingSession) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Header: Vehicle and Status
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("\(session.vehiclePlate) (\(session.vehicleState))")
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
+                    
+                    // Operator and Zone names on one line
+                    HStack(spacing: 4) {
+                        if let operatorName = operators.first(where: { $0.id == session.operatorId })?.name {
+                            Text(operatorName)
+                                .font(.subheadline)
+                                .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
+                        }
+                        Text("•")
+                            .font(.caption)
+                            .foregroundColor(Color.adaptiveTextTertiary(colorScheme == .dark))
+                        Text(getZoneName(for: session))
+                            .font(.subheadline)
+                            .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
+                    }
+                }
+                
+                Spacer()
+                
+                // Status and Info button
+                HStack(spacing: 8) {
+                    Button(action: {
+                        sessionDetailModal = session
+                    }) {
+                        Image(systemName: "info.circle")
+                            .font(.title3)
+                            .foregroundColor(Color.adaptiveCyanAccent(colorScheme == .dark))
+                    }
+                    .buttonStyle(.plain)
+                    
+                    Text(session.isActive ? "Active" : "Stopped")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundColor(session.isActive ? .green : .red)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(session.isActive ? Color.green.opacity(0.2) : Color.red.opacity(0.2))
+                        .cornerRadius(6)
+                }
+            }
+            
+            // Time info
+            HStack {
+                Label(session.startTime.formatted(date: .abbreviated, time: .shortened),
+                      systemImage: "clock")
+                Text("→")
+                Label(session.endTime.formatted(date: .abbreviated, time: .shortened),
+                      systemImage: "clock.badge.checkmark")
+            }
+            .font(.caption)
+            .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
+            
+            // Action buttons for active sessions
+            if session.isActive {
+                HStack(spacing: 12) {
+                    Button(action: {
+                        selectedSession = session
+                        selectedTab = .extend
+                    }) {
+                        Label("Extend", systemImage: "clock.arrow.circlepath")
+                            .font(.caption)
+                            .foregroundColor(Color.adaptiveCyanAccent(colorScheme == .dark))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 8)
+                            .background(Color.adaptiveCyanAccent(colorScheme == .dark).opacity(0.15))
+                            .cornerRadius(8)
+                    }
+                    .buttonStyle(.plain)
+                    
+                    Button(action: {
+                        selectedSession = session
+                        selectedTab = .stop
+                    }) {
+                        Label("Stop", systemImage: "stop.circle")
+                            .font(.caption)
+                            .foregroundColor(.red)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 8)
+                            .background(Color.red.opacity(0.15))
+                            .cornerRadius(8)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .adaptiveGlassmorphismListRow()
+        .contextMenu {
+            Button(role: .destructive) {
+                viewModel.deleteSession(session)
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+        }
+        .sheet(isPresented: Binding(
+            get: { selectedSession?.id == session.id && selectedTab == .extend },
+            set: { if !$0 { selectedSession = nil } }
+        )) {
+            NavigationStack {
+                extendSessionSheet(session)
+            }
+        }
+        .sheet(isPresented: Binding(
+            get: { selectedSession?.id == session.id && selectedTab == .stop },
+            set: { if !$0 { selectedSession = nil } }
+        )) {
+            NavigationStack {
+                stopSessionSheet(session)
+            }
+        }
+    }
+    
+    // MARK: - Session Detail View
+    
+    @ViewBuilder
+    private func sessionDetailView(_ session: ParkingSession) -> some View {
+        Form {
+            Section(header: Text("Vehicle Information").foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))) {
+                LabeledContent("License Plate", value: session.vehiclePlate)
+                    .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
+                LabeledContent("State", value: session.vehicleState)
+                    .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
+                LabeledContent("Country", value: session.vehicleCountry)
+                    .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
+                if let spaceNumber = session.spaceNumber {
+                    LabeledContent("Space Number", value: spaceNumber)
+                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
+                }
+            }
+            .listRowBackground(Color.glassBackground)
+            
+            Section(header: Text("Location").foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))) {
+                if let operatorName = operators.first(where: { $0.id == session.operatorId })?.name {
+                    LabeledContent("Operator", value: operatorName)
+                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
+                }
+                
+                HStack {
+                    Text("Zone ID Type")
+                        .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
+                    Spacer()
+                    Text(session.computedZoneIdType == .passport ? "Passport" : "External")
+                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
+                }
+                
+                LabeledContent("Zone", value: getZoneName(for: session))
+                    .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
+            }
+            .listRowBackground(Color.glassBackground)
+            
+            Section(header: Text("Session Times").foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))) {
+                LabeledContent("Start Time", value: session.startTime, format: .dateTime)
+                    .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
+                LabeledContent("End Time", value: session.endTime, format: .dateTime)
+                    .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
+                LabeledContent("Created", value: session.dateCreated, format: .dateTime)
+                    .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
+            }
+            .listRowBackground(Color.glassBackground)
+            
+            Section(header: Text("API Identifiers").foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Session ID")
+                        .font(.caption)
+                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
+                    HStack {
+                        Text(session.sessionId)
+                            .font(.system(.caption, design: .monospaced))
+                            .foregroundColor(Color.adaptiveCyanAccent(colorScheme == .dark))
+                        Spacer()
+                        Button(action: {
+                            UIPasteboard.general.string = session.sessionId
+                        }) {
+                            Image(systemName: "doc.on.doc")
+                                .foregroundColor(Color.adaptiveCyanAccent(colorScheme == .dark))
+                        }
+                        .buttonStyle(.borderless)
+                    }
+                }
+                
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Operator ID")
+                        .font(.caption)
+                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
+                    HStack {
+                        Text(session.operatorId)
+                            .font(.system(.caption, design: .monospaced))
+                            .foregroundColor(Color.adaptiveCyanAccent(colorScheme == .dark))
+                        Spacer()
+                        Button(action: {
+                            UIPasteboard.general.string = session.operatorId
+                        }) {
+                            Image(systemName: "doc.on.doc")
+                                .foregroundColor(Color.adaptiveCyanAccent(colorScheme == .dark))
+                        }
+                        .buttonStyle(.borderless)
+                    }
+                }
+                
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Zone ID")
+                        .font(.caption)
+                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
+                    HStack {
+                        Text(session.zoneId)
+                            .font(.system(.caption, design: .monospaced))
+                            .foregroundColor(Color.adaptiveCyanAccent(colorScheme == .dark))
+                        Spacer()
+                        Button(action: {
+                            UIPasteboard.general.string = session.zoneId
+                        }) {
+                            Image(systemName: "doc.on.doc")
+                                .foregroundColor(Color.adaptiveCyanAccent(colorScheme == .dark))
+                        }
+                        .buttonStyle(.borderless)
+                    }
+                }
+            }
+            .listRowBackground(Color.glassBackground)
+            
+            Section(header: Text("Status").foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))) {
+                HStack {
+                    Text("Session Status")
+                        .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
+                    Spacer()
+                    Text(session.isActive ? "Active" : "Stopped")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundColor(session.isActive ? .green : .red)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(session.isActive ? Color.green.opacity(0.2) : Color.red.opacity(0.2))
+                        .cornerRadius(6)
+                }
+            }
+            .listRowBackground(Color.glassBackground)
+        }
+        .scrollContentBackground(.hidden)
+        .adaptiveGlassmorphismBackground()
+        .navigationTitle("Session Details")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Done") {
+                    sessionDetailModal = nil
+                }
+                .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
+            }
+        }
+    }
+    
+    // MARK: - Extend/Stop Session Sheets
+    
+    @ViewBuilder
+    private func extendSessionSheet(_ session: ParkingSession) -> some View {
+        ZStack(alignment: .bottom) {
+            Form {
+                Section(header: Text("Session Details").foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))) {
+                    LabeledContent("Vehicle", value: "\(session.vehiclePlate) (\(session.vehicleState))")
+                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
+                    LabeledContent("Zone", value: session.zoneId)
+                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
+                    LabeledContent("Current End", value: session.endTime, format: .dateTime)
+                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
+                }
+                .listRowBackground(Color.glassBackground)
+                
+                Section(header: Text("New End Time").foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))) {
+                    DatePicker("End Time", selection: $newEndTime)
+                }
+                .listRowBackground(Color.glassBackground)
+                
+                Section(header: Text("Extension Fees").foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))) {
+                    feesFields()
+                }
+                .listRowBackground(Color.glassBackground)
+                
+                Section(header: Text("Total Session Fees").foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))) {
+                    totalFeesFields()
+                }
+                .listRowBackground(Color.glassBackground)
+                
+                // Padding for button
+                Section {
+                    Color.clear.frame(height: 80).listRowBackground(Color.clear)
+                }
+            }
+            .scrollContentBackground(.hidden)
+            
+            VStack {
+                Button(action: {
+                    Task {
+                        do {
+                            let fees = EventFees(parkingFee: parkingFee, convenienceFee: convenienceFee, tax: tax, currencyCode: currencyCode)
+                            let totalFees = EventFees(parkingFee: totalParkingFee, convenienceFee: totalConvenienceFee, tax: totalTax, currencyCode: currencyCode)
+                            
+                            try await viewModel.publishExtendedEvent(
+                                session: session, newEndTime: newEndTime, eventFees: fees,
+                                totalSessionFees: totalFees, accountId: accountId.isEmpty ? nil : accountId,
+                                rateName: rateName.isEmpty ? nil : rateName, locationDetails: nil, payment: nil
+                            )
+                            selectedSession = nil
+                        } catch {}
+                    }
+                }) {
+                        Label("Extend Session", systemImage: "clock.arrow.circlepath")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(GlassmorphismButtonStyle(isPrimary: true))
+            }
+                            .padding()
+            .background(
+                RoundedRectangle(cornerRadius: 0)
+                    .fill(Color.adaptiveGlassBackground(colorScheme == .dark))
+                    .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: -5)
+            )
+        }
+        .adaptiveGlassmorphismBackground()
+        .navigationTitle("Extend Session")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancel") {
+                    selectedSession = nil
+                }
+                .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private func stopSessionSheet(_ session: ParkingSession) -> some View {
+        ZStack(alignment: .bottom) {
+            Form {
+                Section(header: Text("Session Details").foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))) {
+                    LabeledContent("Vehicle", value: "\(session.vehiclePlate) (\(session.vehicleState))")
+                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
+                    LabeledContent("Zone", value: session.zoneId)
+                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
+                    LabeledContent("Started", value: session.startTime, format: .dateTime)
+                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
+                }
+                .listRowBackground(Color.glassBackground)
+                
+                Section(header: Text("Actual End Time").foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))) {
+                    DatePicker("End Time", selection: $newEndTime)
+                }
+                .listRowBackground(Color.glassBackground)
+                
+                Section(header: Text("Stop Event Fees").foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))) {
+                    Text("Can be negative for refunds")
+                        .font(.caption)
+                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
+                    feesFields()
+                }
+                .listRowBackground(Color.glassBackground)
+                
+                Section(header: Text("Total Session Fees").foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))) {
+                    totalFeesFields()
+                }
+                .listRowBackground(Color.glassBackground)
+                
+                // Padding for button
+                Section {
+                    Color.clear.frame(height: 80).listRowBackground(Color.clear)
+                }
+            }
+            .scrollContentBackground(.hidden)
+            
+            VStack {
+                Button(action: {
+                    Task {
+                        do {
+                            let fees = EventFees(parkingFee: parkingFee, convenienceFee: convenienceFee, tax: tax, currencyCode: currencyCode)
+                            let totalFees = EventFees(parkingFee: totalParkingFee, convenienceFee: totalConvenienceFee, tax: totalTax, currencyCode: currencyCode)
+                            
+                            try await viewModel.publishStoppedEvent(
+                                session: session, endTime: newEndTime, eventFees: fees,
+                                totalSessionFees: totalFees, accountId: accountId.isEmpty ? nil : accountId,
+                                rateName: rateName.isEmpty ? nil : rateName, locationDetails: nil, payment: nil
+                            )
+                            selectedSession = nil
+                        } catch {}
+                    }
+                }) {
+                        Label("Stop Session", systemImage: "stop.circle.fill")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(GlassmorphismButtonStyle(isPrimary: true))
+            }
+                            .padding()
+            .background(
+                RoundedRectangle(cornerRadius: 0)
+                    .fill(Color.adaptiveGlassBackground(colorScheme == .dark))
+                    .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: -5)
+            )
+        }
+        .adaptiveGlassmorphismBackground()
+        .navigationTitle("Stop Session")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancel") {
+                    selectedSession = nil
+                }
+                .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private func feesFields() -> some View {
+        HStack {
+            Text("Parking")
+            Spacer()
+            TextField("0.00", text: $parkingFee)
+                .keyboardType(.decimalPad)
+                .multilineTextAlignment(.trailing)
+                .frame(width: 80)
+        }
+        
+        HStack {
+            Text("Convenience")
+            Spacer()
+            TextField("0.00", text: $convenienceFee)
+                .keyboardType(.decimalPad)
+                .multilineTextAlignment(.trailing)
+                .frame(width: 80)
+        }
+        
+        HStack {
+            Text("Tax")
+            Spacer()
+            TextField("0.00", text: $tax)
+                .keyboardType(.decimalPad)
+                .multilineTextAlignment(.trailing)
+                .frame(width: 80)
+        }
+    }
+    
+    @ViewBuilder
+    private func totalFeesFields() -> some View {
+        HStack {
+            Text("Parking")
+            Spacer()
+            TextField("0.00", text: $totalParkingFee)
+                .keyboardType(.decimalPad)
+                .multilineTextAlignment(.trailing)
+                .frame(width: 80)
+        }
+        
+        HStack {
+            Text("Convenience")
+            Spacer()
+            TextField("0.00", text: $totalConvenienceFee)
+                .keyboardType(.decimalPad)
+                .multilineTextAlignment(.trailing)
+                .frame(width: 80)
+        }
+        
+        HStack {
+            Text("Tax")
+            Spacer()
+            TextField("0.00", text: $totalTax)
+                .keyboardType(.decimalPad)
+                .multilineTextAlignment(.trailing)
+                .frame(width: 80)
+        }
     }
     
     // MARK: - Start Session Form
@@ -182,6 +717,7 @@ struct ParkingSessionEventView: View {
             HStack {
                 Text("Session ID Preview")
                     .font(.headline)
+                    .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
                 Spacer()
                 Button(action: { previewSessionId = ParkingSession.generateSessionId() }) {
                     HStack(spacing: 4) {
@@ -191,28 +727,30 @@ struct ParkingSessionEventView: View {
                     .font(.caption)
                 }
                 .buttonStyle(.bordered)
-                .tint(.blue)
+                .tint(Color.adaptiveCyanAccent(colorScheme == .dark))
                 .controlSize(.small)
             }
             
             HStack {
                 Text(previewSessionId)
                     .font(.system(.body, design: .monospaced))
-                    .foregroundColor(.blue)
+                    .foregroundColor(Color.adaptiveCyanAccent(colorScheme == .dark))
                 Spacer()
                 Button(action: {
                     UIPasteboard.general.string = previewSessionId
                 }) {
                     Image(systemName: "doc.on.doc")
+                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                 }
                 .buttonStyle(.borderless)
             }
         }
+        .listRowBackground(Color.glassBackground)
         
-        Section("Operator") {
+        Section(header: Text("Operator").foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))) {
             if operators.isEmpty {
                 Text("No operators available. Add an operator first.")
-                    .foregroundColor(.secondary)
+                    .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                     .font(.caption)
             } else {
                 Picker("Select Operator", selection: $selectedOperator) {
@@ -233,13 +771,14 @@ struct ParkingSessionEventView: View {
                 if let op = selectedOperator {
                     LabeledContent("Operator ID", value: op.id)
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                 }
             }
         }
+        .listRowBackground(Color.glassBackground)
         
         if selectedOperator != nil {
-            Section("Zone") {
+            Section(header: Text("Zone").foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))) {
                 Toggle("Use External Zone ID", isOn: $useExternalZoneId)
                     .onChange(of: useExternalZoneId) { _, _ in
                         selectedZone = nil
@@ -256,11 +795,11 @@ struct ParkingSessionEventView: View {
                                 .scaleEffect(0.8)
                             Text("Loading zones...")
                                 .font(.caption)
-                                .foregroundColor(.secondary)
+                                .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                         }
                     } else if availableZones.isEmpty {
                         Text("No zones available for this operator")
-                            .foregroundColor(.secondary)
+                            .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                             .font(.caption)
                     } else {
                         Picker("Select Zone", selection: $selectedZone) {
@@ -273,17 +812,19 @@ struct ParkingSessionEventView: View {
                         if let zone = selectedZone {
                             LabeledContent("Zone ID", value: zone.id)
                                 .font(.caption)
-                                .foregroundColor(.secondary)
+                                .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                         }
                     }
                 }
             }
+            .listRowBackground(Color.glassBackground)
         }
         
         Section {
             HStack {
                 Text("Vehicle")
                     .font(.headline)
+                    .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
                 Spacer()
                 Button(action: generateRandomVehicle) {
                     HStack(spacing: 4) {
@@ -293,7 +834,7 @@ struct ParkingSessionEventView: View {
                     .font(.caption)
                 }
                 .buttonStyle(.bordered)
-                .tint(.blue)
+                .tint(Color.adaptiveCyanAccent(colorScheme == .dark))
                 .controlSize(.small)
             }
             
@@ -310,8 +851,9 @@ struct ParkingSessionEventView: View {
             
             TextField("Space Number (Optional)", text: $spaceNumber, prompt: Text("1-50"))
         }
+        .listRowBackground(Color.glassBackground)
         
-        Section("Session Times") {
+        Section(header: Text("Session Times").foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))) {
             DatePicker("Start Time", selection: $startTime)
             
             VStack(alignment: .leading, spacing: 8) {
@@ -320,45 +862,52 @@ struct ParkingSessionEventView: View {
                 HStack(spacing: 8) {
                     Text("Quick Duration:")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                     
                     Button("30m") {
                         endTime = startTime.addingTimeInterval(1800)
                     }
                     .buttonStyle(.bordered)
+                    .tint(Color.adaptiveCyanAccent(colorScheme == .dark))
                     .controlSize(.mini)
                     
                     Button("1h") {
                         endTime = startTime.addingTimeInterval(3600)
                     }
                     .buttonStyle(.bordered)
+                    .tint(Color.adaptiveCyanAccent(colorScheme == .dark))
                     .controlSize(.mini)
                     
                     Button("2h") {
                         endTime = startTime.addingTimeInterval(7200)
                     }
                     .buttonStyle(.bordered)
+                    .tint(Color.adaptiveCyanAccent(colorScheme == .dark))
                     .controlSize(.mini)
                     
                     Button("4h") {
                         endTime = startTime.addingTimeInterval(14400)
                     }
                     .buttonStyle(.bordered)
+                    .tint(Color.adaptiveCyanAccent(colorScheme == .dark))
                     .controlSize(.mini)
                     
                     Button("8h") {
                         endTime = startTime.addingTimeInterval(28800)
                     }
                     .buttonStyle(.bordered)
+                    .tint(Color.adaptiveCyanAccent(colorScheme == .dark))
                     .controlSize(.mini)
                 }
             }
         }
+        .listRowBackground(Color.glassBackground)
         
         Section {
             HStack {
                 Text("Event Fees")
                     .font(.headline)
+                    .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
                 Spacer()
                 Button(action: generateRandomFees) {
                     HStack(spacing: 4) {
@@ -368,7 +917,7 @@ struct ParkingSessionEventView: View {
                     .font(.caption)
                 }
                 .buttonStyle(.bordered)
-                .tint(.blue)
+                .tint(Color.adaptiveCyanAccent(colorScheme == .dark))
                 .controlSize(.small)
             }
             
@@ -408,292 +957,28 @@ struct ParkingSessionEventView: View {
                     .frame(width: 80)
             }
         }
+        .listRowBackground(Color.glassBackground)
         
-        Section("Optional") {
+        Section(header: Text("Optional").foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))) {
             TextField("Account ID", text: $accountId, prompt: Text("User account UUID"))
                 .autocapitalization(.none)
             
             TextField("Rate Name", text: $rateName, prompt: Text("e.g., $1.25/hour"))
         }
+        .listRowBackground(Color.glassBackground)
     }
     
-    // MARK: - Extend Session Form
+    // MARK: - Helper Methods
     
-    @ViewBuilder
-    private var extendSessionForm: some View {
-        Section("Select Session") {
-            if viewModel.sessions.filter({ $0.isActive }).isEmpty {
-                Text("No active sessions")
-                    .foregroundColor(.secondary)
-            } else {
-                Picker("Session", selection: $selectedSession) {
-                    Text("Select...").tag(nil as ParkingSession?)
-                    ForEach(viewModel.sessions.filter { $0.isActive }) { session in
-                        Text("\(session.vehiclePlate) - \(session.zoneId)").tag(session as ParkingSession?)
-                    }
-                }
-                
-                if let session = selectedSession {
-                    LabeledContent("Current End", value: session.endTime, format: .dateTime)
-                }
-            }
+    private func getZoneName(for session: ParkingSession) -> String {
+        // For external zone IDs, just show "External Zone"
+        if session.computedZoneIdType == .external {
+            return "External Zone"
         }
         
-        if selectedSession != nil {
-            Section("New End Time") {
-                DatePicker("End Time", selection: $newEndTime)
-            }
-            
-            Section("Extension Fees") {
-                HStack {
-                    Text("Parking")
-                    Spacer()
-                    TextField("0.00", text: $parkingFee)
-                        .keyboardType(.decimalPad)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 80)
-                }
-                
-                HStack {
-                    Text("Convenience")
-                    Spacer()
-                    TextField("0.00", text: $convenienceFee)
-                        .keyboardType(.decimalPad)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 80)
-                }
-                
-                HStack {
-                    Text("Tax")
-                    Spacer()
-                    TextField("0.00", text: $tax)
-                        .keyboardType(.decimalPad)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 80)
-                }
-            }
-            
-            Section("Total Session Fees") {
-                HStack {
-                    Text("Parking")
-                    Spacer()
-                    TextField("0.00", text: $totalParkingFee)
-                        .keyboardType(.decimalPad)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 80)
-                }
-                
-                HStack {
-                    Text("Convenience")
-                    Spacer()
-                    TextField("0.00", text: $totalConvenienceFee)
-                        .keyboardType(.decimalPad)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 80)
-                }
-                
-                HStack {
-                    Text("Tax")
-                    Spacer()
-                    TextField("0.00", text: $totalTax)
-                        .keyboardType(.decimalPad)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 80)
-                }
-            }
-        }
-    }
-    
-    // MARK: - Stop Session Form
-    
-    @ViewBuilder
-    private var stopSessionForm: some View {
-        Section("Select Session") {
-            if viewModel.sessions.filter({ $0.isActive }).isEmpty {
-                Text("No active sessions")
-                    .foregroundColor(.secondary)
-            } else {
-                Picker("Session", selection: $selectedSession) {
-                    Text("Select...").tag(nil as ParkingSession?)
-                    ForEach(viewModel.sessions.filter { $0.isActive }) { session in
-                        Text("\(session.vehiclePlate) - \(session.zoneId)").tag(session as ParkingSession?)
-                    }
-                }
-                
-                if let session = selectedSession {
-                    LabeledContent("Vehicle", value: "\(session.vehiclePlate) (\(session.vehicleState))")
-                    LabeledContent("Zone", value: session.zoneId)
-                    LabeledContent("Started", value: session.startTime, format: .dateTime)
-                }
-            }
-        }
-        
-        if selectedSession != nil {
-            Section("Actual End Time") {
-                DatePicker("End Time", selection: $newEndTime)
-            }
-            
-            Section("Stop Event Fees") {
-                Text("Can be negative for refunds")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                
-                HStack {
-                    Text("Parking")
-                    Spacer()
-                    TextField("0.00", text: $parkingFee)
-                        .keyboardType(.numbersAndPunctuation)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 80)
-                }
-                
-                HStack {
-                    Text("Convenience")
-                    Spacer()
-                    TextField("0.00", text: $convenienceFee)
-                        .keyboardType(.numbersAndPunctuation)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 80)
-                }
-                
-                HStack {
-                    Text("Tax")
-                    Spacer()
-                    TextField("0.00", text: $tax)
-                        .keyboardType(.numbersAndPunctuation)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 80)
-                }
-            }
-            
-            Section("Total Session Fees") {
-                HStack {
-                    Text("Parking")
-                    Spacer()
-                    TextField("0.00", text: $totalParkingFee)
-                        .keyboardType(.decimalPad)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 80)
-                }
-                
-                HStack {
-                    Text("Convenience")
-                    Spacer()
-                    TextField("0.00", text: $totalConvenienceFee)
-                        .keyboardType(.decimalPad)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 80)
-                }
-                
-                HStack {
-                    Text("Tax")
-                    Spacer()
-                    TextField("0.00", text: $totalTax)
-                        .keyboardType(.decimalPad)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 80)
-                }
-            }
-        }
-    }
-    
-    // MARK: - Sessions List
-    
-    @ViewBuilder
-    private var sessionsList: some View {
-        Section("All Sessions") {
-            ForEach(viewModel.sessions) { session in
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Text("\(session.vehiclePlate) (\(session.vehicleState))")
-                            .font(.headline)
-                        Spacer()
-                        Text(session.isActive ? "Active" : "Stopped")
-                            .font(.caption)
-                            .fontWeight(.semibold)
-                            .foregroundColor(session.isActive ? .green : .red)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(session.isActive ? Color.green.opacity(0.2) : Color.red.opacity(0.2))
-                            .cornerRadius(6)
-                    }
-                    
-                    Text("Zone: \(session.zoneId)")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    
-                    HStack {
-                        Label(session.startTime.formatted(date: .abbreviated, time: .shortened),
-                              systemImage: "clock")
-                        Spacer()
-                        Label(session.endTime.formatted(date: .abbreviated, time: .shortened),
-                              systemImage: "clock.badge.checkmark")
-                    }
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    
-                    // Action buttons for active sessions
-                    if session.isActive {
-                        HStack(spacing: 12) {
-                            Button(action: {
-                                selectedSession = session
-                                selectedTab = .extend
-                            }) {
-                                Label("Extend", systemImage: "clock.arrow.circlepath")
-                                    .font(.caption)
-                                    .foregroundColor(.blue)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 8)
-                                    .background(Color.blue.opacity(0.1))
-                                    .cornerRadius(8)
-                            }
-                            .buttonStyle(.plain)
-                            
-                            Button(action: {
-                                selectedSession = session
-                                selectedTab = .stop
-                            }) {
-                                Label("Stop", systemImage: "stop.circle")
-                                    .font(.caption)
-                                    .foregroundColor(.red)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 8)
-                                    .background(Color.red.opacity(0.1))
-                                    .cornerRadius(8)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                        .padding(.top, 4)
-                    }
-                }
-                .swipeActions(edge: .trailing) {
-                    Button(role: .destructive) {
-                        viewModel.deleteSession(session)
-                    } label: {
-                        Label("Delete", systemImage: "trash")
-                    }
-                }
-                .swipeActions(edge: .leading) {
-                    if session.isActive {
-                        Button {
-                            selectedSession = session
-                            selectedTab = .extend
-                        } label: {
-                            Label("Extend", systemImage: "clock.arrow.circlepath")
-                        }
-                        .tint(.blue)
-                        
-                        Button {
-                            selectedSession = session
-                            selectedTab = .stop
-                        } label: {
-                            Label("Stop", systemImage: "stop.circle")
-                        }
-                        .tint(.red)
-                    }
-                }
-            }
-        }
+        // Try to find the zone name from available zones
+        // This is a simplified approach - in production you'd want to cache zone data
+        return "Zone \(session.zoneId.prefix(8))..."
     }
     
     // MARK: - Actions
@@ -788,72 +1073,8 @@ struct ParkingSessionEventView: View {
                 clearStartForm()
                 // Generate new session ID for next session
                 previewSessionId = ParkingSession.generateSessionId()
-            } catch {}
-        }
-    }
-    
-    private func submitExtendSession() {
-        guard let session = selectedSession else { return }
-        Task {
-            do {
-                let fees = EventFees(
-                    parkingFee: parkingFee,
-                    convenienceFee: convenienceFee,
-                    tax: tax,
-                    currencyCode: currencyCode
-                )
-                
-                let totalFees = EventFees(
-                    parkingFee: totalParkingFee,
-                    convenienceFee: totalConvenienceFee,
-                    tax: totalTax,
-                    currencyCode: currencyCode
-                )
-                
-                try await viewModel.publishExtendedEvent(
-                    session: session,
-                    newEndTime: newEndTime,
-                    eventFees: fees,
-                    totalSessionFees: totalFees,
-                    accountId: accountId.isEmpty ? nil : accountId,
-                    rateName: rateName.isEmpty ? nil : rateName,
-                    locationDetails: nil,
-                    payment: nil
-                )
-                selectedSession = nil
-            } catch {}
-        }
-    }
-    
-    private func submitStopSession() {
-        guard let session = selectedSession else { return }
-        Task {
-            do {
-                let fees = EventFees(
-                    parkingFee: parkingFee,
-                    convenienceFee: convenienceFee,
-                    tax: tax,
-                    currencyCode: currencyCode
-                )
-                
-                let totalFees = EventFees(
-                    parkingFee: totalParkingFee,
-                    convenienceFee: totalConvenienceFee,
-                    tax: totalTax,
-                    currencyCode: currencyCode
-                )
-                
-                try await viewModel.publishStoppedEvent(
-                    session: session,
-                    endTime: newEndTime,
-                    eventFees: fees,
-                    totalSessionFees: totalFees,
-                    accountId: accountId.isEmpty ? nil : accountId,
-                    rateName: rateName.isEmpty ? nil : rateName,
-                    locationDetails: nil,
-                    payment: nil
-                )
-                selectedSession = nil
+                // Close the sheet if it's open
+                showingStartForm = false
             } catch {}
         }
     }
