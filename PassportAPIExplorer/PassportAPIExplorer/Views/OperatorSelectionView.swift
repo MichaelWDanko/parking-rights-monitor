@@ -49,43 +49,7 @@ struct OperatorSelectionView: View {
                     ScrollView {
                         LazyVStack(spacing: 8) {
                             ForEach(operators) { op in
-                                NavigationLink(destination: OperatorView(selectedOperator: op)) {
-                                    VStack(alignment: .leading, spacing: 6) {
-                                        HStack {
-                                            Text(op.name)
-                                                .font(.headline)
-                                                .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
-                                            Spacer()
-                                            Text(op.environment?.rawValue.capitalized ?? "Unknown")
-                                                .font(.caption)
-                                                .padding(.horizontal, 8)
-                                                .padding(.vertical, 4)
-                                                .background(environmentColor(for: op.environment ?? .production))
-                                                .foregroundColor(.white)
-                                                .cornerRadius(8)
-                                        }
-                                        Text("ID: \(op.id)")
-                                            .font(.caption)
-                                            .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                                    }
-                                    .padding(.horizontal, 16)
-                                    .padding(.vertical, 12)
-                                }
-                                .adaptiveGlassmorphismListRow()
-                                .buttonStyle(PlainButtonStyle())
-                                .contextMenu {
-                                    Button(role: .destructive) {
-                                        dataService?.deleteOperator(op)
-                                    } label: {
-                                        Label("Delete", systemImage: "trash")
-                                    }
-                                    
-                                    Button {
-                                        operatorToEdit = op
-                                    } label: {
-                                        Label("Edit", systemImage: "pencil")
-                                    }
-                                }
+                                OperatorCardView(operator: op, colorScheme: colorScheme)
                             }
                         }
                         .padding(.horizontal, 16)
@@ -155,6 +119,58 @@ struct OperatorSelectionView: View {
         }
         
         isRefreshing = false
+    }
+}
+
+struct OperatorCardView: View {
+    let `operator`: Operator
+    let colorScheme: ColorScheme
+    
+    @State private var isPressed = false
+    
+    var body: some View {
+        NavigationLink(destination: OperatorView(selectedOperator: `operator`)) {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Text(`operator`.name)
+                        .font(.headline)
+                        .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
+                    Spacer()
+                    Text(`operator`.environment?.rawValue.capitalized ?? "Unknown")
+                        .font(.caption)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(environmentColor(for: `operator`.environment ?? .production))
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
+                }
+                Text("ID: \(`operator`.id)")
+                    .font(.caption)
+                    .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .contentShape(Rectangle())
+        }
+        .adaptiveGlassmorphismListRow()
+        .buttonStyle(PlainButtonStyle())
+        .scaleEffect(isPressed ? 0.97 : 1.0)
+        .opacity(isPressed ? 0.8 : 1.0)
+        .animation(.easeInOut(duration: 0.1), value: isPressed)
+        .onLongPressGesture(minimumDuration: 0, pressing: { pressing in
+            isPressed = pressing
+        }, perform: {})
+    }
+    
+    private func environmentColor(for environment: OperatorEnvironment) -> Color {
+        switch environment {
+        case .production:
+            return .green
+        case .staging:
+            return .orange
+        case .development:
+            return .blue
+        }
     }
 }
 

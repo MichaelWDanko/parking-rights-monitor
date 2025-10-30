@@ -25,8 +25,7 @@ struct Vehicle: Codable {
         
         vehiclePlate = try container.decodeIfPresent(String.self, forKey: .vehiclePlate)
         vehicleState = try container.decodeIfPresent(String.self, forKey: .vehicleState)
-        
-        print("🔍 Vehicle decoded - plate: \(vehiclePlate ?? "nil"), state: \(vehicleState ?? "nil")")
+    
     }
     
     // Manual initializer
@@ -48,12 +47,10 @@ struct ParkingRight: Identifiable, Codable {
     let spaceNumber: String?
     
     // Computed properties for backward compatibility
-    var vehicle_plate: String? { 
-        print("🔍 Getting vehicle_plate: \(vehicle?.vehicle_plate ?? "nil")")
+    var vehicle_plate: String? {
         return vehicle?.vehicle_plate 
     }
     var vehicle_state: String? { 
-        print("🔍 Getting vehicle_state: \(vehicle?.vehicle_state ?? "nil")")
         return vehicle?.vehicle_state 
     }
     
@@ -80,5 +77,47 @@ struct ParkingRight: Identifiable, Codable {
         self.vehicle = vehicle
         self.referenceId = referenceId
         self.spaceNumber = spaceNumber
+    }
+    
+    var timeRemainingInSeconds: TimeInterval {
+        let isoDateFormatter = ISO8601DateFormatter()
+        isoDateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        
+        guard let formattedEndDate = isoDateFormatter.date(from: endTime) else {
+            // Try without fractional seconds
+            isoDateFormatter.formatOptions = [.withInternetDateTime]
+            guard let formattedEndDate = isoDateFormatter.date(from: endTime) else {
+                return 0
+            }
+            return formattedEndDate.timeIntervalSince(Date())
+        }
+        
+        return formattedEndDate.timeIntervalSince(Date())
+    }
+    
+    var timeRemainingDescription: String {
+        if timeRemainingInSeconds <= 0 {
+            return "Expired"
+        }
+        
+        let totalSeconds = Int(timeRemainingInSeconds)
+        let days = totalSeconds / 86400
+        let hours = (totalSeconds % 86400) / 3600
+        let minutes = (totalSeconds % 3600) / 60
+        let seconds = totalSeconds % 60
+        
+        if days > 0 {
+            return "\(days) day\(days == 1 ? "" : "s"), \(hours) hour\(hours == 1 ? "" : "s")"
+        }
+        
+        if hours > 0 {
+            return "\(hours) hour\(hours == 1 ? "" : "s"), \(minutes) minute\(minutes == 1 ? "" : "s")"
+        }
+        
+        if minutes > 0 {
+            return "\(minutes) minute\(minutes == 1 ? "" : "s"), \(seconds) second\(seconds == 1 ? "" : "s")"
+        }
+        
+        return "\(seconds) second\(seconds == 1 ? "" : "s")"
     }
 }
