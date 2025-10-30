@@ -32,7 +32,7 @@ struct ContentView: View {
                 OperatorSelectionView()
             }
             .tabItem {
-                Label("API Explorer", systemImage: "network")
+                Label("Monitor Parking Rights", systemImage: "network")
             }
             .environmentObject(passportAPIService)
             
