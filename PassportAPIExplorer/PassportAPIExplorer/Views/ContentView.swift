@@ -9,6 +9,7 @@ import SwiftUI
 import SwiftData
 
 struct ContentView: View {
+    @Environment(\.modelContext) private var modelContext
     @State private var selection: String? = nil
     @AppStorage("selectedThemeMode") private var selectedThemeMode: ThemeMode = .auto
     let passportAPIService: PassportAPIService
@@ -33,6 +34,14 @@ struct ContentView: View {
             }
             .tabItem {
                 Label("Monitor Parking Rights", systemImage: "network")
+            }
+            .environmentObject(passportAPIService)
+            
+            NavigationStack{
+                ParkingSessionEventView(apiService: passportAPIService, modelContext: modelContext)
+            }
+            .tabItem {
+                Label("Publish Events", systemImage: "square.and.arrow.up")
             }
             .environmentObject(passportAPIService)
             

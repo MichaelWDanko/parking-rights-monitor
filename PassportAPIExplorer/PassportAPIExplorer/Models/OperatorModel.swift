@@ -14,7 +14,7 @@ enum OperatorEnvironment : String, Codable, CaseIterable {
     case development
 }
 
-struct Zone : Identifiable, Codable {
+struct Zone : Identifiable, Codable, Hashable {
     let id: String
     let name: String
     let number: String

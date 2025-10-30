@@ -16,7 +16,7 @@ struct PassportAPIExplorerApp: App {
     init() {
         do {
             // Configure SwiftData with CloudKit support
-            let schema = Schema([Operator.self])
+            let schema = Schema([Operator.self, ParkingSession.self])
             let modelConfiguration = ModelConfiguration(
                 schema: schema,
                 cloudKitDatabase: .private("iCloud.com.michaelwdanko.PassportAPIExplorer")
