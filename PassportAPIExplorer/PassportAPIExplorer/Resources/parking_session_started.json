@@ -1,0 +1,148 @@
+{
+    "type": "object",
+    "title": "Parking session started event",
+    "description": "**Event type:** `parking_session_started`\n\n**Latest event definition version:** `3.0.0`\n\nRepresents the start of a parking session. For sessions with known duration, such as on-street parking where a user does not have subsequent interactions with the payment source, this may be the only explicit event in the lifecycle.\n\nEither one of the following fields is required but not both. Your Passport contact will be able to determine what is best suited for your integration.\n\n* `passport_zone_id`\n* `external_zone_id`\n\n**Inclusion of Payment Processing Details**\n\nIf you are publishing parking session events and process your payments through Passport, you will need to publish additional details when sending events.\n\nThese are the fields documented within the `payment` object of the parking session events schema and are included below for reference:\n\n- `gateway_transaction_id`\n- `payment_type`",
+    "examples": [
+        {
+            "occurred_at": "2021-04-01T14:00:00Z",
+            "start_time": "2021-04-01T14:00:00Z",
+            "end_time": "2021-04-01T15:00:00Z",
+            "account_id": "447c5510-ad89-4c3c-964b-71fd11e61ead",
+            "operator_id": "71b47c9a-0ba3-45d3-aae7-8bfdd1e2449d",
+            "passport_zone_id": "6868e70f-fdf4-4587-a0cd-e8dbd18bad9a",
+            "external_zone_id": "102000021",
+            "space_number": "5",
+            "session_id": "68628304",
+            "vehicle": {
+                "vehicle_plate": "ABC1234",
+                "vehicle_state": "SC",
+                "vehicle_country": "US"
+            },
+            "event_fees": {
+                "parking_fee": "1.25",
+                "convenience_fee": "0.25",
+                "tax": "0.10",
+                "currency_code": "USD"
+            },
+            "rate_name": "$1.25 / hour",
+            "location_details": {
+                "latitude": 34.819753,
+                "longitude": -82.3078798,
+                "accuracy": 25
+            },
+            "payment": {
+                "gateway_transaction_id": "50632ddc-f1a9-42ce-886f-d40a8e375f3b",
+                "payment_type": "card"
+            }
+        }
+    ],
+    "properties": {
+        "occurred_at": {
+            "type": "string",
+            "description": "A timestamp that represents when the event occurred. May be different from the `start_time` of the parking session. Will be in UTC time formatted as an RFC 3339 date-timestamp.",
+            "format": "date-time",
+            "example": "2021-04-01T14:00:00Z"
+        },
+        "start_time": {
+            "type": "string",
+            "description": "A timestamp that represents when the session was started.  Will be in UTC time formatted as an RFC 3339 date-timestamp.",
+            "format": "date-time",
+            "example": "2021-04-01T14:00:00Z"
+        },
+        "end_time": {
+            "type": "string",
+            "description": "A timestamp that represents when the session will end.  Will be in UTC time formatted as an RFC 3339 date-timestamp.",
+            "format": "date-time",
+            "example": "2021-04-01T15:00:00Z"
+        },
+        "account_id": {
+            "type": "string",
+            "description": "An ID that represents the individual user who the parking session was created for.",
+            "example": "447c5510-ad89-4c3c-964b-71fd11e61ead"
+        },
+        "operator_id": {
+            "type": "string",
+            "description": "Passport-provided unique identifier for the operator that should receive the data.",
+            "example": "71b47c9a-0ba3-45d3-aae7-8bfdd1e2449d"
+        },
+        "passport_zone_id": {
+            "type": "string",
+            "description": "Passport-provided unique zone identifier.",
+            "example": "6868e70f-fdf4-4587-a0cd-e8dbd18bad9a"
+        },
+        "external_zone_id": {
+            "type": "string",
+            "description": "Third party-provided unique zone identifier. Please ensure Passport has configured these zones before submitting `external_zone_id`'s.\n\nThis should not be provided if your integration is also providing the `passport_zone_id` field.",
+            "example": "102000021"
+        },
+        "space_number": {
+            "type": "string",
+            "description": "If the zone is space based, this is the space number used by the parking session as it exists within the Passport system.",
+            "example": "5"
+        },
+        "session_id": {
+            "type": "string",
+            "description": "A unique machine-readable  identifier for this session, assigned by the partner.",
+            "example": "68628304"
+        },
+        "vehicle": {
+            "$ref": "../models/vehicle.json"
+        },
+        "event_fees": {
+            "type": "object",
+            "description": "This object represents the fees that were charged for this event.",
+            "required": [
+                "parking_fee",
+                "convenience_fee",
+                "tax",
+                "currency_code"
+            ],
+            "properties": {
+                "parking_fee": {
+                    "type": "string",
+                    "description": "The cost to pay for the parking session as part of this transaction. Should be provided in dollar and cents format.",
+                    "example": "1.25",
+                    "pattern": "^[+-]?[0-9]*\\.?[0-9]+$"
+                },
+                "convenience_fee": {
+                    "type": "string",
+                    "description": "Any convenience fee applicable to this transaction. Should be provided in dollar and cents format.",
+                    "example": "0.25",
+                    "pattern": "^[+-]?[0-9]*\\.?[0-9]+$"
+                },
+                "tax": {
+                    "type": "string",
+                    "description": "Additional taxes not included in other fees. Should be provided in dollar and cents format.",
+                    "example": "0.10",
+                    "pattern": "^[+-]?[0-9]*\\.?[0-9]+$"
+                },
+                "currency_code": {
+                    "type": "string",
+                    "description": "The three digit alphabetic [ISO 4217](https://en.wikipedia.org/wiki/ISO_4217) code.",
+                    "example": "USD",
+                    "pattern": "^[A-z]{3}$"
+                }
+            }
+        },
+        "rate_name": {
+            "type": "string",
+            "description": "A user friendly description of the rate that was used to calculate the fees for this parking session",
+            "example": "$1.25 / hour"
+        },
+        "location_details": {
+            "$ref": "../models/location.json"
+        },
+        "payment": {
+            "$ref": "../models/payment.json",
+            "description": "Represents fields that relate to any payment made for this event.\n\n**Required when processing payments through Passport**"
+        }
+    },
+    "required": [
+        "occurred_at",
+        "start_time",
+        "end_time",
+        "operator_id",
+        "session_id",
+        "event_fees"
+    ]
+}
