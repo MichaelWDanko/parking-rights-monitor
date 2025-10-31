@@ -62,11 +62,11 @@ struct ParkingSessionEventView: View {
     
     var body: some View {
         Group {
-            if viewModel.sessions.isEmpty {
-                // No sessions: Show start form directly
-                startFormView
+            if viewModel.activeSessions.isEmpty {
+                // No active sessions: Show landing page
+                landingPageView
             } else {
-                // Has sessions: Show sessions list with start button
+                // Has active sessions: Show sessions list with start button
                 sessionsListView
             }
         }
@@ -119,6 +119,74 @@ struct ParkingSessionEventView: View {
     }
     
     // MARK: - Main Views
+    
+    @ViewBuilder
+    private var landingPageView: some View {
+        ScrollView {
+            VStack(spacing: 24) {
+                Spacer()
+                    .frame(height: 40)
+                
+                // Icon
+                VStack(spacing: 16) {
+                    Image(systemName: "car.fill")
+                        .font(.system(size: 64))
+                        .foregroundColor(Color.adaptiveCyanAccent(colorScheme == .dark))
+                        .symbolEffect(.pulse)
+                    
+                    VStack(spacing: 8) {
+                        Text("No Active Parking Sessions")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                            .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
+                        
+                        Text("Start a new parking session to begin tracking")
+                            .font(.subheadline)
+                            .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 32)
+                    }
+                }
+                .padding(.top, 60)
+                
+                Spacer()
+                
+                // Primary CTA Button
+                Button(action: {
+                    showingStartForm = true
+                }) {
+                    Label("Start New Session", systemImage: "plus.circle.fill")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(GlassmorphismButtonStyle(isPrimary: true))
+                .padding(.horizontal, 32)
+                .padding(.bottom, 20)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(minHeight: UIScreen.main.bounds.height * 0.7)
+        }
+        .refreshable {
+            await viewModel.triggerSync()
+        }
+        .sheet(isPresented: $showingStartForm) {
+            NavigationStack {
+                startFormView
+                    .navigationTitle("Start New Session")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .adaptiveGlassmorphismBackground()
+                    .adaptiveGlassmorphismNavigation()
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Cancel") {
+                                showingStartForm = false
+                            }
+                            .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
+                        }
+                    }
+            }
+        }
+    }
     
     @ViewBuilder
     private var startFormView: some View {
@@ -213,7 +281,7 @@ struct ParkingSessionEventView: View {
                         .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
                         .padding(.horizontal, 16)
                     
-                    ForEach(viewModel.sessions.filter { $0.isActive }) { session in
+                    ForEach(viewModel.activeSessions) { session in
                         sessionCard(session)
                     }
                     
@@ -234,6 +302,9 @@ struct ParkingSessionEventView: View {
             .padding(.horizontal, 16)
             .padding(.top, 16)
             .padding(.bottom, 20)
+        }
+        .refreshable {
+            await viewModel.triggerSync()
         }
         .sheet(item: $sessionDetailModal) { session in
             NavigationStack {

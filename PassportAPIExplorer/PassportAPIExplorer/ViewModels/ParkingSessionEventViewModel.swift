@@ -317,11 +317,58 @@ class ParkingSessionEventViewModel: ObservableObject {
         }
     }
     
+    // MARK: - iCloud Sync
+    
+    @Published var isSyncing = false
+    
+    func triggerSync() async {
+        isSyncing = true
+        print("🔄 [SYNC] ======== MANUAL SYNC TRIGGERED ========")
+        print("📅 [SYNC] Time: \(Date())")
+        print("🔍 [SYNC] Current sessions count: \(sessions.count)")
+        
+        defer { isSyncing = false }
+        
+        do {
+            print("💾 [SYNC] Saving modelContext to push any pending changes...")
+            // Save any pending changes
+            try modelContext.save()
+            print("✅ [SYNC] ModelContext saved successfully")
+            
+            print("⏳ [SYNC] Waiting 2 seconds for CloudKit to process...")
+            // NOTE: Task.sleep throws CancellationError if the task is cancelled (e.g. refresh ends)
+            // Treat that as a benign cancellation and just return without surfacing an error.
+            do { try await Task.sleep(nanoseconds: 2_000_000_000) } catch is CancellationError {
+                print("⚠️ [SYNC] Sleep cancelled by system (pull-to-refresh). Treating as benign.")
+                return
+            }
+            
+            // Reload sessions to get any synced data
+            loadSessions()
+            
+            print("✅ [SYNC] Sync completed at \(Date())")
+            print("☁️ [SYNC] CloudKit should now be up to date")
+            print("🔍 [SYNC] Final sessions count: \(sessions.count)")
+            print("🔄 [SYNC] ======== SYNC COMPLETE ========")
+        } catch is CancellationError {
+            // Benign: the task was cancelled by the system; do not show an error toast
+            print("⚠️ [SYNC] Sync task cancelled by system. Ignoring.")
+        } catch {
+            print("❌ [SYNC ERROR] Sync failed")
+            print("❌ [SYNC ERROR] Details: \(error.localizedDescription)")
+            errorMessage = "Sync failed: \(error.localizedDescription)"
+        }
+    }
+    
     // MARK: - Helper Methods
     
     func clearMessages() {
         errorMessage = nil
         successMessage = nil
+    }
+    
+    var activeSessions: [ParkingSession] {
+        sessions.filter { $0.isActive }
     }
 }
 

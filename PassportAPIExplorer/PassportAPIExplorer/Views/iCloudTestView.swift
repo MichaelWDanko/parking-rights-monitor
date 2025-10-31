@@ -88,6 +88,7 @@ struct iCloudTestView: View {
                                             .cornerRadius(4)
                                     }
                                     .listRowBackground(Color.adaptiveGlassBackground(colorScheme == .dark))
+                                    .listRowSeparator(.hidden)
                                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                         Button(role: .destructive) {
                                             deleteOperator(op)
@@ -121,6 +122,7 @@ struct iCloudTestView: View {
                             .scrollDisabled(true)
                             .scrollContentBackground(.hidden)
                             .listStyle(.plain)
+                            .listSectionSeparator(.hidden)
                         }
                         .padding()
                         .adaptiveGlassmorphismCard()

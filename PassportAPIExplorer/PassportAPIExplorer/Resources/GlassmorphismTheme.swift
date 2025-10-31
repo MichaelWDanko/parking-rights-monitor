@@ -192,16 +192,19 @@ extension View {
 // MARK: - Custom Button Styles
 struct GlassmorphismButtonStyle: ButtonStyle {
     let isPrimary: Bool
+    @Environment(\.colorScheme) var colorScheme
     
     init(isPrimary: Bool = true) {
         self.isPrimary = isPrimary
     }
     
     func makeBody(configuration: Configuration) -> some View {
+        let isDark = colorScheme == .dark
+        
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
             .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
-            .foregroundColor(isPrimary ? .navyBlue : .glassTextPrimary)
+            .foregroundColor(isPrimary ? .navyBlue : Color.adaptiveTextPrimary(isDark))
             .padding(.horizontal, 20)
             .padding(.vertical, 12)
             .background(
@@ -214,7 +217,10 @@ struct GlassmorphismButtonStyle: ButtonStyle {
                             endPoint: .bottomTrailing
                         ) :
                         LinearGradient(
-                            colors: [Color.glassBackground, Color.glassBackgroundLight],
+                            colors: [
+                                Color.adaptiveGlassBackground(isDark),
+                                Color.adaptiveGlassBackgroundLight(isDark)
+                            ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
@@ -224,8 +230,8 @@ struct GlassmorphismButtonStyle: ButtonStyle {
                             .stroke(
                                 LinearGradient(
                                     colors: [
-                                        Color.white.opacity(0.3),
-                                        Color.white.opacity(0.1)
+                                        Color.white.opacity(isDark ? 0.3 : 0.2),
+                                        Color.white.opacity(isDark ? 0.1 : 0.05)
                                     ],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
