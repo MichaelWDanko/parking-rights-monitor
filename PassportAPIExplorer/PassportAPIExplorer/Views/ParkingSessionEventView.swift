@@ -138,14 +138,14 @@ struct ParkingSessionEventView: View {
             // Floating button with frosted glass background
             VStack(spacing: 0) {
                 // Button container
-                VStack {
-                    Button(action: submitStartSession) {
-                        Label("Start Parking Session", systemImage: "play.circle.fill")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                    }
+        VStack {
+                Button(action: submitStartSession) {
+                    Label("Start Parking Session", systemImage: "play.circle.fill")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                }
                     .buttonStyle(GlassmorphismButtonStyle(isPrimary: true))
-                    .disabled(!isStartFormValid)
+                .disabled(!isStartFormValid)
                     .opacity(isStartFormValid ? 1.0 : 0.5)
                 }
                 .padding()

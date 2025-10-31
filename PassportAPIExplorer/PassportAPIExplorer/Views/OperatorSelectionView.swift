@@ -46,16 +46,42 @@ struct OperatorSelectionView: View {
                     .adaptiveGlassmorphismCard()
                     .padding()
                 } else {
-                    ScrollView {
-                        LazyVStack(spacing: 8) {
-                            ForEach(operators) { op in
-                                OperatorCardView(operator: op, colorScheme: colorScheme)
-                            }
+                    List {
+                        ForEach(operators) { op in
+                            OperatorCardView(operator: op, colorScheme: colorScheme)
+                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                    Button(role: .destructive) {
+                                        deleteOperator(op)
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
+                                    
+                                    Button {
+                                        operatorToEdit = op
+                                    } label: {
+                                        Label("Edit", systemImage: "pencil")
+                                    }
+                                    .tint(.blue)
+                                }
+                                .contextMenu {
+                                    Button {
+                                        operatorToEdit = op
+                                    } label: {
+                                        Label("Edit", systemImage: "pencil")
+                                    }
+                                    
+                                    Button(role: .destructive) {
+                                        deleteOperator(op)
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
+                                }
+                                .listRowBackground(Color.clear)
+                                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
                         }
-                        .padding(.horizontal, 16)
-                        .padding(.top, 16)
-                        .padding(.bottom, 20)
                     }
+                    .listStyle(.plain)
+                    .scrollContentBackground(.hidden)
                     .refreshable {
                         await refreshOperators()
                     }
@@ -81,8 +107,23 @@ struct OperatorSelectionView: View {
                 EditOperatorView(operatorToEdit: op)
             }
             .onAppear {
+                print("👁️ [OPERATOR VIEW] Operator selection view appeared")
+                print("📅 [OPERATOR VIEW] Time: \(Date())")
+                print("🔍 [OPERATOR VIEW] Loaded operators count: \(operators.count)")
+                
+                if operators.isEmpty {
+                    print("⚠️ [OPERATOR VIEW] No operators found")
+                } else {
+                    print("📋 [OPERATOR VIEW] Current operators:")
+                    for (index, op) in operators.enumerated() {
+                        print("   [OPERATOR VIEW] \(index + 1). '\(op.name)' (ID: \(op.id))")
+                    }
+                }
+                
                 if dataService == nil {
+                    print("🔧 [OPERATOR VIEW] Initializing OperatorDataService...")
                     dataService = OperatorDataService(modelContext: modelContext)
+                    print("🔄 [OPERATOR VIEW] Checking for mock data migration...")
                     dataService?.migrateFromMockDataIfNeeded()
                 }
             }
@@ -119,6 +160,16 @@ struct OperatorSelectionView: View {
         }
         
         isRefreshing = false
+    }
+    
+    private func deleteOperator(_ op: Operator) {
+        modelContext.delete(op)
+        do {
+            try modelContext.save()
+            print("🗑️ Operator deleted: \(op.name)")
+        } catch {
+            print("❌ Failed to delete operator: \(error.localizedDescription)")
+        }
     }
 }
 
