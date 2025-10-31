@@ -368,7 +368,8 @@ class ParkingSessionEventViewModel: ObservableObject {
     }
     
     var activeSessions: [ParkingSession] {
-        sessions.filter { $0.isActive }
+        let now = Date()
+        return sessions.filter { $0.isActive && $0.endTime > now }
     }
 }
 

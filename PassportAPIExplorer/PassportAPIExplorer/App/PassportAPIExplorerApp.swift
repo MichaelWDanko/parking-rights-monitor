@@ -12,6 +12,7 @@ import SwiftData
 struct PassportAPIExplorerApp: App {
     
     let modelContainer: ModelContainer
+    private let passportAPIService: PassportAPIService
     
     init() {
         do {
@@ -53,11 +54,22 @@ struct PassportAPIExplorerApp: App {
             }
             fatalError("Could not initialize ModelContainer: \(error)")
         }
+        // Initialize shared PassportAPIService once at the app level
+        let secrets = try! SecretsLoader.load()
+        let config = OAuthConfiguration(
+            tokenURL: URL(string: "https://api.us.passportinc.com/v3/shared/access-tokens")!,
+            client_id: secrets.client_id,
+            client_secret: secrets.client_secret,
+            audience: "public.api.passportinc.com",
+            clientTraceId: "danko-test"
+        )
+        self.passportAPIService = PassportAPIService(config: config)
     }
 
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(passportAPIService)
         }
         .modelContainer(modelContainer)
     }

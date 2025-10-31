@@ -185,15 +185,7 @@ struct ParkingRightListView: View {
         operator_id: zdanko.id
     )
     
-    let secrets = try! SecretsLoader.load()
-    let config = OAuthConfiguration(
-        tokenURL: URL(string: "https://api.us.passportinc.com/v3/shared/access-tokens")!,
-        client_id: secrets.client_id,
-        client_secret: secrets.client_secret,
-        audience: "public.api.passportinc.com",
-        clientTraceId: "danko-test"
-    )
-    let mockAPIService = PassportAPIService(config: config)
+    let mockAPIService = PreviewEnvironment.makePreviewService()
     
     ParkingRightListView(zone: sampleZone, operatorId: zdanko.id)
         .environmentObject(mockAPIService)

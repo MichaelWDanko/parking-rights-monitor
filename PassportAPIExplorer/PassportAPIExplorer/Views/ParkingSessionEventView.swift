@@ -11,6 +11,14 @@ import SwiftData
 struct ParkingSessionEventView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject var apiService: PassportAPIService
+    var body: some View {
+        ParkingSessionEventInnerView(apiService: apiService, modelContext: modelContext)
+    }
+}
+
+private struct ParkingSessionEventInnerView: View {
+    @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject var apiService: PassportAPIService
     @StateObject private var viewModel: ParkingSessionEventViewModel
     @Query private var operators: [Operator]
     @Environment(\.colorScheme) var colorScheme
@@ -315,6 +323,7 @@ struct ParkingSessionEventView: View {
     
     @ViewBuilder
     private func sessionCard(_ session: ParkingSession) -> some View {
+        let isActiveNow = session.isActive && session.endTime > Date()
         VStack(alignment: .leading, spacing: 12) {
             // Header: Vehicle and Status
             HStack {
@@ -350,13 +359,13 @@ struct ParkingSessionEventView: View {
                     }
                     .buttonStyle(.plain)
                     
-                    Text(session.isActive ? "Active" : "Stopped")
+                    Text(isActiveNow ? "Active" : "Stopped")
                         .font(.caption)
                         .fontWeight(.semibold)
-                        .foregroundColor(session.isActive ? .green : .red)
+                        .foregroundColor(isActiveNow ? .green : .red)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
-                        .background(session.isActive ? Color.green.opacity(0.2) : Color.red.opacity(0.2))
+                        .background(isActiveNow ? Color.green.opacity(0.2) : Color.red.opacity(0.2))
                         .cornerRadius(6)
                 }
             }
@@ -373,7 +382,7 @@ struct ParkingSessionEventView: View {
             .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
             
             // Action buttons for active sessions
-            if session.isActive {
+            if isActiveNow {
                 HStack(spacing: 12) {
                     Button(action: {
                         selectedSession = session
@@ -1210,29 +1219,11 @@ struct ParkingSessionEventView: View {
         for: ParkingSession.self, Operator.self,
         configurations: ModelConfiguration(isStoredInMemoryOnly: true)
     )
+    let service = PreviewEnvironment.makePreviewService()
     
     return NavigationStack {
-        ParkingSessionEventView(
-            apiService: PassportAPIService(
-                config: OAuthConfiguration(
-                    tokenURL: URL(string: "https://api.us.passportinc.com/v3/shared/access-tokens")!,
-                    client_id: "test",
-                    client_secret: "test",
-                    audience: "public.api.passportinc.com",
-                    clientTraceId: "test"
-                )
-            ),
-            modelContext: container.mainContext
-        )
-        .environmentObject(PassportAPIService(
-            config: OAuthConfiguration(
-                tokenURL: URL(string: "https://api.us.passportinc.com/v3/shared/access-tokens")!,
-                client_id: "test",
-                client_secret: "test",
-                audience: "public.api.passportinc.com",
-                clientTraceId: "test"
-            )
-        ))
-        .modelContainer(container)
+        ParkingSessionEventView()
     }
+    .environmentObject(service)
+    .modelContainer(container)
 }
