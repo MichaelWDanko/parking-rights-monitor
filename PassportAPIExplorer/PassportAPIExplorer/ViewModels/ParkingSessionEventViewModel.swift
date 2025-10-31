@@ -317,11 +317,51 @@ class ParkingSessionEventViewModel: ObservableObject {
         }
     }
     
+    // MARK: - iCloud Sync
+    
+    @Published var isSyncing = false
+    
+    func triggerSync() async {
+        isSyncing = true
+        print("🔄 [SYNC] ======== MANUAL SYNC TRIGGERED ========")
+        print("📅 [SYNC] Time: \(Date())")
+        print("🔍 [SYNC] Current sessions count: \(sessions.count)")
+        
+        do {
+            print("💾 [SYNC] Saving modelContext to push any pending changes...")
+            // Save any pending changes
+            try modelContext.save()
+            print("✅ [SYNC] ModelContext saved successfully")
+            
+            print("⏳ [SYNC] Waiting 2 seconds for CloudKit to process...")
+            // Wait a moment to allow CloudKit to sync
+            try await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
+            
+            // Reload sessions to get any synced data
+            loadSessions()
+            
+            print("✅ [SYNC] Sync completed at \(Date())")
+            print("☁️ [SYNC] CloudKit should now be up to date")
+            print("🔍 [SYNC] Final sessions count: \(sessions.count)")
+            print("🔄 [SYNC] ======== SYNC COMPLETE ========")
+        } catch {
+            print("❌ [SYNC ERROR] Sync failed")
+            print("❌ [SYNC ERROR] Details: \(error.localizedDescription)")
+            errorMessage = "Sync failed: \(error.localizedDescription)"
+        }
+        
+        isSyncing = false
+    }
+    
     // MARK: - Helper Methods
     
     func clearMessages() {
         errorMessage = nil
         successMessage = nil
+    }
+    
+    var activeSessions: [ParkingSession] {
+        sessions.filter { $0.isActive }
     }
 }
 

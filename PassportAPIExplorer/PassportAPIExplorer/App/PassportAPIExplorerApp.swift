@@ -18,20 +18,19 @@ struct PassportAPIExplorerApp: App {
             print("🚀 [INIT] Starting ModelContainer initialization...")
             print("📅 [INIT] Device time: \(Date())")
             
-            // Configure SwiftData with CloudKit support for Operator only
-            // ParkingSession is stored locally only (not synced to iCloud)
+            // Configure SwiftData with CloudKit support for Operator and ParkingSession
             let schema = Schema([Operator.self, ParkingSession.self])
-            print("📋 [SCHEMA] Registered models: Operator (synced), ParkingSession (local only)")
+            print("📋 [SCHEMA] Registered models: Operator, ParkingSession (both synced)")
             
             let containerIdentifier = "iCloud.com.michaelwdanko.PassportAPIExplorer"
             
-            // CloudKit configuration for Operator only
+            // CloudKit configuration for Operator and ParkingSession
             let cloudKitConfiguration = ModelConfiguration(
-                schema: Schema([Operator.self]),
+                schema: Schema([Operator.self, ParkingSession.self]),
                 cloudKitDatabase: .private(containerIdentifier)
             )
             print("☁️ [CONFIG] CloudKit database: private(\(containerIdentifier))")
-            print("🔄 [CONFIG] CloudKit sync enabled for: Operator")
+            print("🔄 [CONFIG] CloudKit sync enabled for: Operator, ParkingSession")
             
             modelContainer = try ModelContainer(
                 for: schema,
@@ -39,9 +38,9 @@ struct PassportAPIExplorerApp: App {
             )
             
             print("✅ [SUCCESS] SwiftData with CloudKit configured successfully")
-            print("🔄 [SYNC] CloudKit sync is ENABLED for Operators - records will sync across devices")
+            print("🔄 [SYNC] CloudKit sync is ENABLED for Operators and ParkingSessions - records will sync across devices")
             print("📱 [CONTAINER] Using container: \(containerIdentifier)")
-            print("💾 [LOCAL] ParkingSession data stored locally only (not synced)")
+            print("☁️ [SYNC] ParkingSession data now syncs to iCloud via CloudKit")
             print("🔍 [DEBUG] ModelContainer initialized with \(modelContainer.configurations.count) configuration(s)")
         } catch {
             print("❌ [ERROR] Failed to initialize ModelContainer")
