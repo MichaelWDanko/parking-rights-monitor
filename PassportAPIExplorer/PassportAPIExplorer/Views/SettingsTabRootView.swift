@@ -39,7 +39,35 @@ struct SettingsTabRootView: View {
                 
                 Section("Debug Tools") {
                     NavigationLink("Token Test", destination: TokenTestView(passportAPIService: passportAPIService))
-                    NavigationLink("iCloud Test", destination: iCloudTestView())
+                }
+                .listRowBackground(Color.adaptiveGlassBackground(colorScheme == .dark))
+                
+                Section {
+                    NavigationLink(destination: iCloudTestView()) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "icloud.fill")
+                                .foregroundColor(Color.adaptiveCyanAccent(colorScheme == .dark))
+                                .font(.title3)
+                            
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Data Sync")
+                                    .font(.headline)
+                                    .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
+                                Text("Your sessions sync across all your devices")
+                                    .font(.caption)
+                                    .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
+                            }
+                            
+                            Spacer()
+                            
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.green)
+                                .symbolEffect(.pulse)
+                        }
+                        .padding(.vertical, 4)
+                    }
+                } footer: {
+                    Text("Parking sessions and operators are automatically synced to your iCloud account. Make sure you're signed in to iCloud on all devices.")
                 }
                 .listRowBackground(Color.adaptiveGlassBackground(colorScheme == .dark))
                 

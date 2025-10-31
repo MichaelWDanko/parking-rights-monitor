@@ -55,10 +55,10 @@ extension Color {
     static let lightBlueLight = Color(red: 0.95, green: 0.98, blue: 1.0)
     static let lightBlueDark = Color(red: 0.85, green: 0.92, blue: 0.98)
     
-    // Cyan accents (work in both modes)
-    static let cyanAccent = Color(red: 0.0, green: 0.8, blue: 1.0)
-    static let cyanAccentLight = Color(red: 0.2, green: 0.9, blue: 1.0)
-    static let cyanAccentDark = Color(red: 0.0, green: 0.6, blue: 0.8)
+    // Cyan accents - adaptive for light/dark mode
+    static let cyanAccent = Color(red: 0.0, green: 0.55, blue: 0.75)  // Darker for better contrast on light backgrounds
+    static let cyanAccentLight = Color(red: 0.2, green: 0.9, blue: 1.0)  // Lighter for dark mode
+    static let cyanAccentDark = Color(red: 0.0, green: 0.45, blue: 0.65)  // Even darker variant
     
     // Adaptive colors
     static func adaptiveBackground(_ isDark: Bool) -> Color {
@@ -95,6 +95,10 @@ extension Color {
     
     static func adaptiveTextTertiary(_ isDark: Bool) -> Color {
         return isDark ? Color.white.opacity(0.6) : Color.black.opacity(0.5)
+    }
+    
+    static func adaptiveCyanAccent(_ isDark: Bool) -> Color {
+        return isDark ? cyanAccentLight : cyanAccent
     }
     
     // Legacy static colors for backward compatibility

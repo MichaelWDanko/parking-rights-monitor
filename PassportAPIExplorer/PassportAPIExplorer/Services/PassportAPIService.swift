@@ -38,8 +38,7 @@ enum SecretsLoader {
 
 // MARK: - Token Management
 
-@MainActor
-private struct OAuthTokenResponse: Decodable {
+private struct OAuthTokenResponse: Decodable, Sendable {
     let access_token: String
     let token_type: String
     let expires_in: Int
@@ -54,7 +53,7 @@ private struct OAuthTokenResponse: Decodable {
         case expires_at
     }
     
-    init(from decoder: Decoder) throws {
+    nonisolated init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         
         // Required fields
@@ -87,7 +86,7 @@ private protocol TokenStore {
     func clear() async
 }
 
-private final class InMemoryTokenStore: TokenStore {
+private final class InMemoryTokenStore: TokenStore, @unchecked Sendable {
     private var _accessToken: String?
     private var _expiryDate: Date?
     
@@ -403,6 +402,48 @@ final class PassportAPIService: ObservableObject {
             
             throw error
         }
+    }
+    
+    // MARK: - Parking Session Events API
+    
+    func publishParkingSessionEvent<T: Encodable>(
+        type: String,
+        version: String = "1.0.0",
+        data: [T]
+    ) async throws -> Bool {
+        let url = URL(string: "\(baseURL)/v3/shared/events")!
+        print("🎯 Publishing parking session event: \(type)")
+        
+        // Create the request body
+        let requestBody: [String: Any] = [
+            "type": type,
+            "version": version,
+            "data": try data.map { item -> [String: Any] in
+                let jsonData = try JSONEncoder().encode(item)
+                return try JSONSerialization.jsonObject(with: jsonData) as! [String: Any]
+            }
+        ]
+        
+        let jsonData = try JSONSerialization.data(withJSONObject: requestBody)
+        
+        // Log the request body
+        if let jsonString = String(data: jsonData, encoding: .utf8) {
+            print("🎯 Request body: \(jsonString)")
+        }
+        
+        var request = try await createAuthenticatedRequest(url: url, method: "POST")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.httpBody = jsonData
+        
+        let (data, response) = try await performRequest(request)
+        
+        // Log response
+        if let responseString = String(data: data, encoding: .utf8) {
+            print("🎯 Response: \(responseString)")
+        }
+        
+        return (200..<300).contains(response.statusCode)
     }
     
     // MARK: - Private Network Methods
