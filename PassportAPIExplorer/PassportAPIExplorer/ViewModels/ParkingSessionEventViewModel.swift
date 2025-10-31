@@ -327,6 +327,8 @@ class ParkingSessionEventViewModel: ObservableObject {
         print("📅 [SYNC] Time: \(Date())")
         print("🔍 [SYNC] Current sessions count: \(sessions.count)")
         
+        defer { isSyncing = false }
+        
         do {
             print("💾 [SYNC] Saving modelContext to push any pending changes...")
             // Save any pending changes
@@ -334,8 +336,12 @@ class ParkingSessionEventViewModel: ObservableObject {
             print("✅ [SYNC] ModelContext saved successfully")
             
             print("⏳ [SYNC] Waiting 2 seconds for CloudKit to process...")
-            // Wait a moment to allow CloudKit to sync
-            try await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
+            // NOTE: Task.sleep throws CancellationError if the task is cancelled (e.g. refresh ends)
+            // Treat that as a benign cancellation and just return without surfacing an error.
+            do { try await Task.sleep(nanoseconds: 2_000_000_000) } catch is CancellationError {
+                print("⚠️ [SYNC] Sleep cancelled by system (pull-to-refresh). Treating as benign.")
+                return
+            }
             
             // Reload sessions to get any synced data
             loadSessions()
@@ -344,13 +350,14 @@ class ParkingSessionEventViewModel: ObservableObject {
             print("☁️ [SYNC] CloudKit should now be up to date")
             print("🔍 [SYNC] Final sessions count: \(sessions.count)")
             print("🔄 [SYNC] ======== SYNC COMPLETE ========")
+        } catch is CancellationError {
+            // Benign: the task was cancelled by the system; do not show an error toast
+            print("⚠️ [SYNC] Sync task cancelled by system. Ignoring.")
         } catch {
             print("❌ [SYNC ERROR] Sync failed")
             print("❌ [SYNC ERROR] Details: \(error.localizedDescription)")
             errorMessage = "Sync failed: \(error.localizedDescription)"
         }
-        
-        isSyncing = false
     }
     
     // MARK: - Helper Methods

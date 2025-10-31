@@ -77,10 +77,12 @@ struct OperatorSelectionView: View {
                                     }
                                 }
                                 .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
                                 .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
                         }
                     }
                     .listStyle(.plain)
+                    .listSectionSeparator(.hidden)
                     .scrollContentBackground(.hidden)
                     .refreshable {
                         await refreshOperators()
