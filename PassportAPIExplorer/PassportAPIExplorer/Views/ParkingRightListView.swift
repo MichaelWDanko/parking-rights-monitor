@@ -21,8 +21,8 @@ struct ParkingRightListView: View {
     
     var body: some View {
         Group {
-            if let viewModel = viewModel {
-                @Bindable var bindableViewModel: ParkingRightListViewModel = viewModel
+            if let vm = viewModel {
+                @Bindable var bindableViewModel: ParkingRightListViewModel = vm
                 
                 VStack(spacing: 0) {
                     // Search bar for filtering parking rights
@@ -34,9 +34,9 @@ struct ParkingRightListView: View {
                             .textFieldStyle(PlainTextFieldStyle())
                             .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
                         
-                        if !viewModel.searchText.isEmpty {
+                        if !bindableViewModel.searchText.isEmpty {
                             Button(action: {
-                                viewModel.searchText = ""
+                                bindableViewModel.searchText = ""
                             }) {
                                 Image(systemName: "xmark.circle.fill")
                                     .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
@@ -47,11 +47,11 @@ struct ParkingRightListView: View {
                     .padding(.horizontal)
                     .padding(.bottom, 2)
                     
-                    if viewModel.isLoadingRights {
+                    if bindableViewModel.isLoadingRights {
                         ProgressView("Loading parking rights...")
                             .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    } else if let error = viewModel.rightsError {
+                    } else if let error = bindableViewModel.rightsError {
                         VStack(spacing: 16) {
                             Image(systemName: "exclamationmark.triangle")
                                 .font(.system(size: 50))
@@ -64,14 +64,14 @@ struct ParkingRightListView: View {
                                 .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                                 .multilineTextAlignment(.center)
                             Button("Retry") {
-                                viewModel.loadParkingRights()
+                                bindableViewModel.loadParkingRights()
                             }
                             .buttonStyle(GlassmorphismButtonStyle(isPrimary: true))
                         }
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .adaptiveGlassmorphismCard()
                         .padding()
-                    } else if viewModel.filteredRights.isEmpty && !viewModel.searchText.isEmpty {
+                    } else if bindableViewModel.filteredRights.isEmpty && !bindableViewModel.searchText.isEmpty {
                         VStack(spacing: 16) {
                             Image(systemName: "magnifyingglass")
                                 .font(.system(size: 50))
@@ -86,7 +86,7 @@ struct ParkingRightListView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .adaptiveGlassmorphismCard()
                         .padding()
-                    } else if viewModel.parkingRights.isEmpty {
+                    } else if bindableViewModel.parkingRights.isEmpty {
                         VStack(spacing: 16) {
                             Image(systemName: "car")
                                 .font(.system(size: 50))
@@ -105,7 +105,7 @@ struct ParkingRightListView: View {
                     } else {
                         ScrollView {
                             LazyVStack(spacing: 8) {
-                                ForEach(viewModel.filteredRights) { parkingRight in
+                                ForEach(bindableViewModel.filteredRights) { parkingRight in
                                     ParkingRightView(pr: parkingRight)
                                 }
                             }
@@ -114,8 +114,8 @@ struct ParkingRightListView: View {
                             .padding(.bottom, 20)
                         }
                         .onAppear {
-                            print("🚗 UI: Displaying \(viewModel.filteredRights.count) parking rights")
-                            for (index, right) in viewModel.filteredRights.enumerated() {
+                            print("🚗 UI: Displaying \(bindableViewModel.filteredRights.count) parking rights")
+                            for (index, right) in bindableViewModel.filteredRights.enumerated() {
                                 print("🚗 UI: Item \(index + 1): \(right.vehicle_plate ?? "N/A")")
                             }
                         }
