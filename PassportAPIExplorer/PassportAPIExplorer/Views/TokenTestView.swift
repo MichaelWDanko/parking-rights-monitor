@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct TokenTestView: View {
-    @State private var token: String = ""
+    @State private var tokenResponse: TokenResponse?
     @State private var isLoading = false
     @State private var errorMessage: String?
     @AppStorage("selectedThemeMode") private var selectedThemeMode: ThemeMode = .auto
@@ -17,49 +17,90 @@ struct TokenTestView: View {
     @EnvironmentObject var passportAPIService: PassportAPIService
 
     var body: some View {
-        VStack(spacing: 20) {
-            Text("Token Test")
-                .font(.title)
-                .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
-            
-            Button("Get Access Token") {
-                Task {
-                    await fetchToken()
+        Form {
+            Section {
+                Button(action: {
+                    Task {
+                        await fetchToken()
+                    }
+                }) {
+                    HStack {
+                        if isLoading {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                        }
+                        Text("Get Access Token")
+                            .font(.headline)
+                    }
+                    .frame(maxWidth: .infinity)
                 }
+                .buttonStyle(GlassmorphismButtonStyle(isPrimary: true))
+                .disabled(isLoading)
             }
-            .disabled(isLoading)
-            .buttonStyle(GlassmorphismButtonStyle(isPrimary: true))
-            
-            if isLoading {
-                ProgressView("Loading token...")
-                    .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
-            }
+            .listRowBackground(Color.glassBackground)
             
             if let error = errorMessage {
-                VStack(spacing: 8) {
-                    Text("Error: \(error)")
-                        .foregroundColor(.cyanAccent)
-                        .padding()
+                Section(header: Text("Error").foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))) {
+                    Text(error)
+                        .foregroundColor(.red)
+                        .font(.caption)
                 }
-                .adaptiveGlassmorphismCard()
-                .padding()
+                .listRowBackground(Color.glassBackground)
             }
             
-            if !token.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Token:")
-                        .font(.headline)
-                        .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
-                    Text(token)
-                        .font(.caption)
+            if let response = tokenResponse {
+                Section(header: Text("Token Information").foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))) {
+                    LabeledContent("Token Type", value: response.tokenType)
                         .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                        .padding()
-                        .adaptiveGlassmorphismCard()
+                    
+                    if let expiresAt = response.formattedExpiresAt {
+                        LabeledContent("Expires At", value: expiresAt)
+                            .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
+                    }
+                    
+                    LabeledContent("Expires In", value: "\(response.expiresIn) seconds")
+                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                 }
-                .padding()
+                .listRowBackground(Color.glassBackground)
+                
+                if !response.scopesArray.isEmpty {
+                    Section(header: Text("Scopes").foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))) {
+                        ForEach(response.scopesArray, id: \.self) { scope in
+                            HStack {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(.green)
+                                    .font(.caption)
+                                Text(scope)
+                                    .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
+                            }
+                        }
+                    }
+                    .listRowBackground(Color.glassBackground)
+                }
+                
+                Section(header: Text("Access Token").foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))) {
+                    ScrollView {
+                        Text(response.accessToken)
+                            .font(.system(.caption, design: .monospaced))
+                            .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
+                            .textSelection(.enabled)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .frame(minHeight: 100)
+                    
+                    Button(action: {
+                        UIPasteboard.general.string = response.accessToken
+                    }) {
+                        Label("Copy Token", systemImage: "doc.on.doc")
+                            .font(.caption)
+                            .foregroundColor(Color.adaptiveCyanAccent(colorScheme == .dark))
+                    }
+                    .buttonStyle(.borderless)
+                }
+                .listRowBackground(Color.glassBackground)
             }
         }
-        .padding()
+        .scrollContentBackground(.hidden)
         .adaptiveGlassmorphismBackground()
         .navigationTitle("Token Test")
         .adaptiveGlassmorphismNavigation()
@@ -68,11 +109,12 @@ struct TokenTestView: View {
     private func fetchToken() async {
         isLoading = true
         errorMessage = nil
+        tokenResponse = nil
         
         do {
-            let token = try await passportAPIService.getValidToken()
+            let response = try await passportAPIService.getTokenResponse()
             await MainActor.run {
-                self.token = token
+                self.tokenResponse = response
                 self.isLoading = false
             }
         } catch {

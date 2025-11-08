@@ -38,6 +38,28 @@ enum SecretsLoader {
 
 // MARK: - Token Management
 
+// Public struct for token response
+struct TokenResponse {
+    let accessToken: String
+    let tokenType: String
+    let expiresIn: Int
+    let scope: String?
+    let expiresAt: Date?
+    
+    var formattedExpiresAt: String? {
+        guard let expiresAt = expiresAt else { return nil }
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter.string(from: expiresAt)
+    }
+    
+    var scopesArray: [String] {
+        guard let scope = scope else { return [] }
+        return scope.components(separatedBy: " ").filter { !$0.isEmpty }
+    }
+}
+
 private struct OAuthTokenResponse: Decodable, Sendable {
     let access_token: String
     let token_type: String
@@ -123,10 +145,22 @@ private actor TokenManager {
         }
         return try await fetchNewToken()
     }
+    
+    func getTokenResponse() async throws -> TokenResponse {
+        // Always fetch a fresh token to get full response details
+        let response = try await fetchNewTokenResponse()
+        return response
+    }
 
     func invalidate() async { await store.clear() }
 
     private func fetchNewToken() async throws -> String {
+        let response = try await fetchNewTokenResponse()
+        await store.save(token: response.accessToken, expiresAt: response.expiresAt ?? Date().addingTimeInterval(3600))
+        return response.accessToken
+    }
+    
+    private func fetchNewTokenResponse() async throws -> TokenResponse {
         // x-www-form-urlencoded body (client_id/secret IN BODY).
         let items = [
             URLQueryItem(name: "grant_type", value: "client_credentials"),
@@ -149,31 +183,53 @@ private actor TokenManager {
             throw NSError(domain: "OAuth", code: code, userInfo: [NSLocalizedDescriptionKey: "Token endpoint \(code): \(body)"])
         }
 
-        // Add debugging information
+        // Add debugging information - log full response
         let responseString = String(data: data, encoding: .utf8) ?? "<no response>"
-        print("OAuth Response: \(responseString)")
+        print("🔑 [OAuth] Full API Response:")
+        print("🔑 [OAuth] Status Code: \(http.statusCode)")
+        print("🔑 [OAuth] Response Body: \(responseString)")
+        if let responseHeaders = http.allHeaderFields as? [String: String] {
+            print("🔑 [OAuth] Response Headers: \(responseHeaders)")
+        }
         
         do {
             let tok = try JSONDecoder().decode(OAuthTokenResponse.self, from: data)
             
             // Use expires_at timestamp if available, otherwise calculate from expires_in
-            let expiresAt: Date
+            let expiresAt: Date?
             if let expiresAtString = tok.expires_at {
                 let formatter = ISO8601DateFormatter()
+                formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
                 expiresAt = formatter.date(from: expiresAtString) ?? Date().addingTimeInterval(TimeInterval(tok.expires_in))
             } else {
                 expiresAt = Date().addingTimeInterval(TimeInterval(tok.expires_in))
             }
             
-            await store.save(token: tok.access_token, expiresAt: expiresAt)
-            return tok.access_token
+            print("🔑 [OAuth] Parsed Token Details:")
+            print("🔑 [OAuth] - Token Type: \(tok.token_type)")
+            print("🔑 [OAuth] - Expires In: \(tok.expires_in) seconds")
+            print("🔑 [OAuth] - Scope: \(tok.scope ?? "none")")
+            print("🔑 [OAuth] - Expires At (raw): \(tok.expires_at ?? "none")")
+            if let expiresAt = expiresAt {
+                print("🔑 [OAuth] - Expires At (parsed): \(expiresAt)")
+            }
+            
+            return TokenResponse(
+                accessToken: tok.access_token,
+                tokenType: tok.token_type,
+                expiresIn: tok.expires_in,
+                scope: tok.scope,
+                expiresAt: expiresAt
+            )
         } catch {
             // Provide more specific error information
             if let decodingError = error as? DecodingError {
                 let errorMessage = "JSON Decoding Error: \(decodingError.localizedDescription). Response: \(responseString)"
+                print("🔑 [OAuth] Decoding Error: \(decodingError)")
                 throw NSError(domain: "OAuth", code: -1, userInfo: [NSLocalizedDescriptionKey: errorMessage])
             } else {
                 let errorMessage = "Token parsing failed: \(error.localizedDescription). Response: \(responseString)"
+                print("🔑 [OAuth] Parsing Error: \(error)")
                 throw NSError(domain: "OAuth", code: -1, userInfo: [NSLocalizedDescriptionKey: errorMessage])
             }
         }
@@ -199,6 +255,11 @@ final class PassportAPIService: ObservableObject {
     /// Get a valid access token (useful for testing)
     func getValidToken() async throws -> String {
         return try await tokenManager.validAccessToken()
+    }
+    
+    /// Get full token response including scopes and expiration (useful for testing UI)
+    func getTokenResponse() async throws -> TokenResponse {
+        return try await tokenManager.getTokenResponse()
     }
     
     /// Debug method to test OAuth token endpoint and see raw response
