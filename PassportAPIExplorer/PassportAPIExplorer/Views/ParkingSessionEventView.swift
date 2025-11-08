@@ -19,7 +19,8 @@ struct ParkingSessionEventView: View {
 private struct ParkingSessionEventInnerView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject var apiService: PassportAPIService
-    @StateObject private var viewModel: ParkingSessionEventViewModel
+    @State private var listViewModel: ParkingSessionsListViewModel
+    @State private var eventPublisher: ParkingSessionEventPublisherViewModel
     @State private var formViewModel: ParkingSessionEventFormViewModel
     @Query private var operators: [Operator]
     @Environment(\.colorScheme) var colorScheme
@@ -39,14 +40,16 @@ private struct ParkingSessionEventInnerView: View {
     }
     
     init(apiService: PassportAPIService, modelContext: ModelContext) {
-        let vm = ParkingSessionEventViewModel(apiService: apiService, modelContext: modelContext)
-        _viewModel = StateObject(wrappedValue: vm)
-        _formViewModel = State(initialValue: ParkingSessionEventFormViewModel(apiService: apiService, sessionViewModel: vm))
+        let listVM = ParkingSessionsListViewModel(modelContext: modelContext)
+        _listViewModel = State(initialValue: listVM)
+        let eventPub = ParkingSessionEventPublisherViewModel(apiService: apiService, listViewModel: listVM)
+        _eventPublisher = State(initialValue: eventPub)
+        _formViewModel = State(initialValue: ParkingSessionEventFormViewModel(apiService: apiService, eventPublisher: eventPub))
     }
     
     var body: some View {
         Group {
-            if viewModel.activeSessions.isEmpty {
+            if listViewModel.activeSessions.isEmpty {
                 // No active sessions: Show landing page
                 landingPageView
             } else {
@@ -75,22 +78,22 @@ private struct ParkingSessionEventInnerView: View {
                     }
             }
         }
-        .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
-            Button("OK") { viewModel.clearMessages() }
+        .alert("Error", isPresented: .constant(eventPublisher.errorMessage != nil)) {
+            Button("OK") { eventPublisher.clearMessages() }
         } message: {
-            if let error = viewModel.errorMessage {
+            if let error = eventPublisher.errorMessage {
                 Text(error)
             }
         }
-        .alert("Success", isPresented: .constant(viewModel.successMessage != nil)) {
-            Button("OK") { viewModel.clearMessages() }
+        .alert("Success", isPresented: .constant(eventPublisher.successMessage != nil)) {
+            Button("OK") { eventPublisher.clearMessages() }
         } message: {
-            if let success = viewModel.successMessage {
+            if let success = eventPublisher.successMessage {
                 Text(success)
             }
         }
         .overlay {
-            if viewModel.isLoading {
+            if eventPublisher.isLoading {
                 ZStack {
                     Color.black.opacity(0.4)
                         .ignoresSafeArea()
@@ -151,7 +154,7 @@ private struct ParkingSessionEventInnerView: View {
             .frame(minHeight: UIScreen.main.bounds.height * 0.7)
         }
         .refreshable {
-            await viewModel.triggerSync()
+            await listViewModel.triggerSync()
         }
         .sheet(isPresented: $showingStartForm) {
             NavigationStack {
@@ -272,11 +275,11 @@ private struct ParkingSessionEventInnerView: View {
                         .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
                         .padding(.horizontal, 16)
                     
-                    ForEach(viewModel.activeSessions) { session in
+                    ForEach(listViewModel.activeSessions) { session in
                         sessionCard(session)
                     }
                     
-                    if !viewModel.sessions.filter({ !$0.isActive }).isEmpty {
+                    if !listViewModel.sessions.filter({ !$0.isActive }).isEmpty {
                         Text("Completed Sessions")
                             .font(.title2)
                             .fontWeight(.semibold)
@@ -284,7 +287,7 @@ private struct ParkingSessionEventInnerView: View {
                             .padding(.horizontal, 16)
                             .padding(.top, 8)
                         
-                        ForEach(viewModel.sessions.filter { !$0.isActive }) { session in
+                        ForEach(listViewModel.sessions.filter { !$0.isActive }) { session in
                             sessionCard(session)
                         }
                     }
@@ -295,7 +298,7 @@ private struct ParkingSessionEventInnerView: View {
             .padding(.bottom, 20)
         }
         .refreshable {
-            await viewModel.triggerSync()
+            await listViewModel.triggerSync()
         }
         .sheet(item: $sessionDetailModal) { session in
             NavigationStack {
@@ -402,7 +405,7 @@ private struct ParkingSessionEventInnerView: View {
         .adaptiveGlassmorphismListRow()
         .contextMenu {
             Button(role: .destructive) {
-                viewModel.deleteSession(session)
+                listViewModel.deleteSession(session)
             } label: {
                 Label("Delete", systemImage: "trash")
             }

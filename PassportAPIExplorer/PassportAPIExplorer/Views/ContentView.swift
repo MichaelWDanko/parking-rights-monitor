@@ -27,7 +27,7 @@ struct ContentView: View {
                 ParkingSessionEventView()
             }
             .tabItem {
-                Label("Parking Events", systemImage: "paperplane.fill")
+                Label("Parking Sessions", systemImage: "paperplane.fill")
             }
             
             NavigationStack{

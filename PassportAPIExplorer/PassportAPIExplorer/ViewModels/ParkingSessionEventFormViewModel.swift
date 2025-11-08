@@ -54,13 +54,13 @@ final class ParkingSessionEventFormViewModel {
     // MARK: - Dependencies
     
     private let apiService: PassportAPIService
-    private let sessionViewModel: ParkingSessionEventViewModel
+    private let eventPublisher: ParkingSessionEventPublisherViewModel
     
     // MARK: - Initialization
     
-    init(apiService: PassportAPIService, sessionViewModel: ParkingSessionEventViewModel) {
+    init(apiService: PassportAPIService, eventPublisher: ParkingSessionEventPublisherViewModel) {
         self.apiService = apiService
-        self.sessionViewModel = sessionViewModel
+        self.eventPublisher = eventPublisher
     }
     
     // MARK: - Computed Properties
@@ -175,7 +175,7 @@ final class ParkingSessionEventFormViewModel {
             currencyCode: currencyCode
         )
         
-        try await sessionViewModel.publishStartedEvent(
+        try await eventPublisher.publishStartedEvent(
             sessionId: previewSessionId,
             operatorId: operatorId,
             zoneIdType: zoneIdType,
@@ -203,7 +203,7 @@ final class ParkingSessionEventFormViewModel {
         let fees = EventFees(parkingFee: parkingFee, convenienceFee: convenienceFee, tax: tax, currencyCode: currencyCode)
         let totalFees = EventFees(parkingFee: totalParkingFee, convenienceFee: totalConvenienceFee, tax: totalTax, currencyCode: currencyCode)
         
-        try await sessionViewModel.publishExtendedEvent(
+        try await eventPublisher.publishExtendedEvent(
             session: session,
             newEndTime: newEndTime,
             eventFees: fees,
@@ -219,7 +219,7 @@ final class ParkingSessionEventFormViewModel {
         let fees = EventFees(parkingFee: parkingFee, convenienceFee: convenienceFee, tax: tax, currencyCode: currencyCode)
         let totalFees = EventFees(parkingFee: totalParkingFee, convenienceFee: totalConvenienceFee, tax: totalTax, currencyCode: currencyCode)
         
-        try await sessionViewModel.publishStoppedEvent(
+        try await eventPublisher.publishStoppedEvent(
             session: session,
             endTime: newEndTime,
             eventFees: fees,
