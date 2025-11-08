@@ -14,7 +14,7 @@ struct TokenTestView: View {
     @AppStorage("selectedThemeMode") private var selectedThemeMode: ThemeMode = .auto
     @Environment(\.colorScheme) var colorScheme
 
-    let passportAPIService: PassportAPIService
+    @EnvironmentObject var passportAPIService: PassportAPIService
 
     var body: some View {
         VStack(spacing: 20) {
@@ -87,13 +87,8 @@ struct TokenTestView: View {
 #if DEBUG
 struct TokenTestView_Previews: PreviewProvider {
     static var previews: some View {
-        TokenTestView(passportAPIService: PassportAPIService(config: OAuthConfiguration(
-            tokenURL: URL(string: "https://example.com/token")!,
-            client_id: "test",
-            client_secret: "test",
-            audience: "test",
-            clientTraceId: "preview"
-        )))
+        TokenTestView()
+            .environmentObject(PreviewEnvironment.makePreviewService())
     }
 }
 #endif

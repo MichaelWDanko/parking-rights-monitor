@@ -11,43 +11,27 @@ import SwiftData
 struct ParkingSessionEventView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject var apiService: PassportAPIService
-    @StateObject private var viewModel: ParkingSessionEventViewModel
+    var body: some View {
+        ParkingSessionEventInnerView(apiService: apiService, modelContext: modelContext)
+    }
+}
+
+private struct ParkingSessionEventInnerView: View {
+    @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject var apiService: PassportAPIService
+    @State private var listViewModel: ParkingSessionsListViewModel
+    @State private var eventPublisher: ParkingSessionEventPublisherViewModel
+    @State private var formViewModel: ParkingSessionEventFormViewModel
     @Query private var operators: [Operator]
     @Environment(\.colorScheme) var colorScheme
     @AppStorage("selectedThemeMode") private var selectedThemeMode: ThemeMode = .auto
     
     @State private var selectedTab: EventTab = .start
-    @State private var previewSessionId: String = ParkingSession.generateSessionId()
     @State private var showingStartForm = false
     @State private var sessionDetailModal: ParkingSession?
     
-    // Start session fields
-    @State private var selectedOperator: Operator?
-    @State private var useExternalZoneId = false
-    @State private var availableZones: [Zone] = []
-    @State private var selectedZone: Zone?
-    @State private var externalZoneId = ""
-    @State private var isLoadingZones = false
-    
-    @State private var vehiclePlate = ""
-    @State private var vehicleState = ""
-    @State private var vehicleCountry = "US"
-    @State private var spaceNumber = ""
-    @State private var startTime = Date()
-    @State private var endTime = Date().addingTimeInterval(3600)
-    @State private var accountId = ""
-    @State private var parkingFee = "1.25"
-    @State private var convenienceFee = "0.25"
-    @State private var tax = "0.10"
-    @State private var currencyCode = "USD"
-    @State private var rateName = ""
-    
     // Extend/Stop fields
     @State private var selectedSession: ParkingSession?
-    @State private var newEndTime = Date()
-    @State private var totalParkingFee = "2.50"
-    @State private var totalConvenienceFee = "0.50"
-    @State private var totalTax = "0.20"
     
     enum EventTab: String, CaseIterable {
         case start = "Start"
@@ -56,13 +40,16 @@ struct ParkingSessionEventView: View {
     }
     
     init(apiService: PassportAPIService, modelContext: ModelContext) {
-        let vm = ParkingSessionEventViewModel(apiService: apiService, modelContext: modelContext)
-        _viewModel = StateObject(wrappedValue: vm)
+        let listVM = ParkingSessionsListViewModel(modelContext: modelContext)
+        _listViewModel = State(initialValue: listVM)
+        let eventPub = ParkingSessionEventPublisherViewModel(apiService: apiService, listViewModel: listVM)
+        _eventPublisher = State(initialValue: eventPub)
+        _formViewModel = State(initialValue: ParkingSessionEventFormViewModel(apiService: apiService, eventPublisher: eventPub))
     }
     
     var body: some View {
         Group {
-            if viewModel.activeSessions.isEmpty {
+            if listViewModel.activeSessions.isEmpty {
                 // No active sessions: Show landing page
                 landingPageView
             } else {
@@ -91,22 +78,22 @@ struct ParkingSessionEventView: View {
                     }
             }
         }
-        .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
-            Button("OK") { viewModel.clearMessages() }
+        .alert("Error", isPresented: .constant(eventPublisher.errorMessage != nil)) {
+            Button("OK") { eventPublisher.clearMessages() }
         } message: {
-            if let error = viewModel.errorMessage {
+            if let error = eventPublisher.errorMessage {
                 Text(error)
             }
         }
-        .alert("Success", isPresented: .constant(viewModel.successMessage != nil)) {
-            Button("OK") { viewModel.clearMessages() }
+        .alert("Success", isPresented: .constant(eventPublisher.successMessage != nil)) {
+            Button("OK") { eventPublisher.clearMessages() }
         } message: {
-            if let success = viewModel.successMessage {
+            if let success = eventPublisher.successMessage {
                 Text(success)
             }
         }
         .overlay {
-            if viewModel.isLoading {
+            if eventPublisher.isLoading {
                 ZStack {
                     Color.black.opacity(0.4)
                         .ignoresSafeArea()
@@ -167,7 +154,7 @@ struct ParkingSessionEventView: View {
             .frame(minHeight: UIScreen.main.bounds.height * 0.7)
         }
         .refreshable {
-            await viewModel.triggerSync()
+            await listViewModel.triggerSync()
         }
         .sheet(isPresented: $showingStartForm) {
             NavigationStack {
@@ -206,15 +193,22 @@ struct ParkingSessionEventView: View {
             // Floating button with frosted glass background
             VStack(spacing: 0) {
                 // Button container
-        VStack {
-                Button(action: submitStartSession) {
+            VStack {
+                Button(action: {
+                    Task {
+                        do {
+                            try await formViewModel.submitStartSession()
+                            showingStartForm = false
+                        } catch {}
+                    }
+                }) {
                     Label("Start Parking Session", systemImage: "play.circle.fill")
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                 }
                     .buttonStyle(GlassmorphismButtonStyle(isPrimary: true))
-                .disabled(!isStartFormValid)
-                    .opacity(isStartFormValid ? 1.0 : 0.5)
+                .disabled(!formViewModel.isStartFormValid)
+                    .opacity(formViewModel.isStartFormValid ? 1.0 : 0.5)
                 }
                 .padding()
                 
@@ -281,11 +275,11 @@ struct ParkingSessionEventView: View {
                         .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
                         .padding(.horizontal, 16)
                     
-                    ForEach(viewModel.activeSessions) { session in
+                    ForEach(listViewModel.activeSessions) { session in
                         sessionCard(session)
                     }
                     
-                    if !viewModel.sessions.filter({ !$0.isActive }).isEmpty {
+                    if !listViewModel.sessions.filter({ !$0.isActive }).isEmpty {
                         Text("Completed Sessions")
                             .font(.title2)
                             .fontWeight(.semibold)
@@ -293,7 +287,7 @@ struct ParkingSessionEventView: View {
                             .padding(.horizontal, 16)
                             .padding(.top, 8)
                         
-                        ForEach(viewModel.sessions.filter { !$0.isActive }) { session in
+                        ForEach(listViewModel.sessions.filter { !$0.isActive }) { session in
                             sessionCard(session)
                         }
                     }
@@ -304,7 +298,7 @@ struct ParkingSessionEventView: View {
             .padding(.bottom, 20)
         }
         .refreshable {
-            await viewModel.triggerSync()
+            await listViewModel.triggerSync()
         }
         .sheet(item: $sessionDetailModal) { session in
             NavigationStack {
@@ -315,6 +309,7 @@ struct ParkingSessionEventView: View {
     
     @ViewBuilder
     private func sessionCard(_ session: ParkingSession) -> some View {
+        let isActiveNow = session.isActive && session.endTime > Date()
         VStack(alignment: .leading, spacing: 12) {
             // Header: Vehicle and Status
             HStack {
@@ -350,13 +345,13 @@ struct ParkingSessionEventView: View {
                     }
                     .buttonStyle(.plain)
                     
-                    Text(session.isActive ? "Active" : "Stopped")
+                    Text(isActiveNow ? "Active" : "Stopped")
                         .font(.caption)
                         .fontWeight(.semibold)
-                        .foregroundColor(session.isActive ? .green : .red)
+                        .foregroundColor(isActiveNow ? .green : .red)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
-                        .background(session.isActive ? Color.green.opacity(0.2) : Color.red.opacity(0.2))
+                        .background(isActiveNow ? Color.green.opacity(0.2) : Color.red.opacity(0.2))
                         .cornerRadius(6)
                 }
             }
@@ -373,7 +368,7 @@ struct ParkingSessionEventView: View {
             .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
             
             // Action buttons for active sessions
-            if session.isActive {
+            if isActiveNow {
                 HStack(spacing: 12) {
                     Button(action: {
                         selectedSession = session
@@ -410,7 +405,7 @@ struct ParkingSessionEventView: View {
         .adaptiveGlassmorphismListRow()
         .contextMenu {
             Button(role: .destructive) {
-                viewModel.deleteSession(session)
+                listViewModel.deleteSession(session)
             } label: {
                 Label("Delete", systemImage: "trash")
             }
@@ -589,7 +584,7 @@ struct ParkingSessionEventView: View {
                 .listRowBackground(Color.glassBackground)
                 
                 Section(header: Text("New End Time").foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))) {
-                    DatePicker("End Time", selection: $newEndTime)
+                    DatePicker("End Time", selection: $formViewModel.newEndTime)
                 }
                 .listRowBackground(Color.glassBackground)
                 
@@ -614,14 +609,7 @@ struct ParkingSessionEventView: View {
                 Button(action: {
                     Task {
                         do {
-                            let fees = EventFees(parkingFee: parkingFee, convenienceFee: convenienceFee, tax: tax, currencyCode: currencyCode)
-                            let totalFees = EventFees(parkingFee: totalParkingFee, convenienceFee: totalConvenienceFee, tax: totalTax, currencyCode: currencyCode)
-                            
-                            try await viewModel.publishExtendedEvent(
-                                session: session, newEndTime: newEndTime, eventFees: fees,
-                                totalSessionFees: totalFees, accountId: accountId.isEmpty ? nil : accountId,
-                                rateName: rateName.isEmpty ? nil : rateName, locationDetails: nil, payment: nil
-                            )
+                            try await formViewModel.submitExtendSession(session)
                             selectedSession = nil
                         } catch {}
                     }
@@ -667,7 +655,7 @@ struct ParkingSessionEventView: View {
                 .listRowBackground(Color.glassBackground)
                 
                 Section(header: Text("Actual End Time").foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))) {
-                    DatePicker("End Time", selection: $newEndTime)
+                    DatePicker("End Time", selection: $formViewModel.newEndTime)
                 }
                 .listRowBackground(Color.glassBackground)
                 
@@ -695,14 +683,7 @@ struct ParkingSessionEventView: View {
                 Button(action: {
                     Task {
                         do {
-                            let fees = EventFees(parkingFee: parkingFee, convenienceFee: convenienceFee, tax: tax, currencyCode: currencyCode)
-                            let totalFees = EventFees(parkingFee: totalParkingFee, convenienceFee: totalConvenienceFee, tax: totalTax, currencyCode: currencyCode)
-                            
-                            try await viewModel.publishStoppedEvent(
-                                session: session, endTime: newEndTime, eventFees: fees,
-                                totalSessionFees: totalFees, accountId: accountId.isEmpty ? nil : accountId,
-                                rateName: rateName.isEmpty ? nil : rateName, locationDetails: nil, payment: nil
-                            )
+                            try await formViewModel.submitStopSession(session)
                             selectedSession = nil
                         } catch {}
                     }
@@ -738,7 +719,7 @@ struct ParkingSessionEventView: View {
         HStack {
             Text("Parking")
             Spacer()
-            TextField("0.00", text: $parkingFee)
+            TextField("0.00", text: $formViewModel.parkingFee)
                 .keyboardType(.decimalPad)
                 .multilineTextAlignment(.trailing)
                 .frame(width: 80)
@@ -747,7 +728,7 @@ struct ParkingSessionEventView: View {
         HStack {
             Text("Convenience")
             Spacer()
-            TextField("0.00", text: $convenienceFee)
+            TextField("0.00", text: $formViewModel.convenienceFee)
                 .keyboardType(.decimalPad)
                 .multilineTextAlignment(.trailing)
                 .frame(width: 80)
@@ -756,7 +737,7 @@ struct ParkingSessionEventView: View {
         HStack {
             Text("Tax")
             Spacer()
-            TextField("0.00", text: $tax)
+            TextField("0.00", text: $formViewModel.tax)
                 .keyboardType(.decimalPad)
                 .multilineTextAlignment(.trailing)
                 .frame(width: 80)
@@ -768,7 +749,7 @@ struct ParkingSessionEventView: View {
         HStack {
             Text("Parking")
             Spacer()
-            TextField("0.00", text: $totalParkingFee)
+            TextField("0.00", text: $formViewModel.totalParkingFee)
                 .keyboardType(.decimalPad)
                 .multilineTextAlignment(.trailing)
                 .frame(width: 80)
@@ -777,7 +758,7 @@ struct ParkingSessionEventView: View {
         HStack {
             Text("Convenience")
             Spacer()
-            TextField("0.00", text: $totalConvenienceFee)
+            TextField("0.00", text: $formViewModel.totalConvenienceFee)
                 .keyboardType(.decimalPad)
                 .multilineTextAlignment(.trailing)
                 .frame(width: 80)
@@ -786,7 +767,7 @@ struct ParkingSessionEventView: View {
         HStack {
             Text("Tax")
             Spacer()
-            TextField("0.00", text: $totalTax)
+            TextField("0.00", text: $formViewModel.totalTax)
                 .keyboardType(.decimalPad)
                 .multilineTextAlignment(.trailing)
                 .frame(width: 80)
@@ -803,7 +784,7 @@ struct ParkingSessionEventView: View {
                     .font(.headline)
                     .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
                 Spacer()
-                Button(action: { previewSessionId = ParkingSession.generateSessionId() }) {
+                Button(action: { formViewModel.generateNewSessionId() }) {
                     HStack(spacing: 4) {
                         Image(systemName: "arrow.clockwise.circle.fill")
                         Text("New ID")
@@ -816,12 +797,12 @@ struct ParkingSessionEventView: View {
             }
             
             HStack {
-                Text(previewSessionId)
+                Text(formViewModel.previewSessionId)
                     .font(.system(.body, design: .monospaced))
                     .foregroundColor(Color.adaptiveCyanAccent(colorScheme == .dark))
                 Spacer()
                 Button(action: {
-                    UIPasteboard.general.string = previewSessionId
+                    UIPasteboard.general.string = formViewModel.previewSessionId
                 }) {
                     Image(systemName: "doc.on.doc")
                         .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
@@ -837,22 +818,17 @@ struct ParkingSessionEventView: View {
                     .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                     .font(.caption)
             } else {
-                Picker("Select Operator", selection: $selectedOperator) {
+                Picker("Select Operator", selection: $formViewModel.selectedOperator) {
                     Text("Choose operator...").tag(nil as Operator?)
                     ForEach(operators) { op in
                         Text(op.name).tag(op as Operator?)
                     }
                 }
-                .onChange(of: selectedOperator) { _, newOperator in
-                    if let op = newOperator {
-                        loadZonesForOperator(op)
-                    } else {
-                        availableZones = []
-                        selectedZone = nil
-                    }
+                .onChange(of: formViewModel.selectedOperator) { _, newOperator in
+                    formViewModel.handleOperatorChange(newOperator)
                 }
                 
-                if let op = selectedOperator {
+                if let op = formViewModel.selectedOperator {
                     LabeledContent("Operator ID", value: op.id)
                         .font(.caption)
                         .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
@@ -861,19 +837,18 @@ struct ParkingSessionEventView: View {
         }
         .listRowBackground(Color.glassBackground)
         
-        if selectedOperator != nil {
+        if formViewModel.selectedOperator != nil {
             Section(header: Text("Zone").foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))) {
-                Toggle("Use External Zone ID", isOn: $useExternalZoneId)
-                    .onChange(of: useExternalZoneId) { _, _ in
-                        selectedZone = nil
-                        externalZoneId = ""
+                Toggle("Use External Zone ID", isOn: $formViewModel.useExternalZoneId)
+                    .onChange(of: formViewModel.useExternalZoneId) { _, isOn in
+                        formViewModel.handleExternalZoneToggle(isOn)
                     }
                 
-                if useExternalZoneId {
-                    TextField("External Zone ID", text: $externalZoneId, prompt: Text("Zone identifier"))
+                if formViewModel.useExternalZoneId {
+                    TextField("External Zone ID", text: $formViewModel.externalZoneId, prompt: Text("Zone identifier"))
                         .autocapitalization(.none)
                 } else {
-                    if isLoadingZones {
+                    if formViewModel.isLoadingZones {
                         HStack {
                             ProgressView()
                                 .scaleEffect(0.8)
@@ -881,19 +856,19 @@ struct ParkingSessionEventView: View {
                                 .font(.caption)
                                 .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                         }
-                    } else if availableZones.isEmpty {
+                    } else if formViewModel.availableZones.isEmpty {
                         Text("No zones available for this operator")
                             .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                             .font(.caption)
                     } else {
-                        Picker("Select Zone", selection: $selectedZone) {
+                        Picker("Select Zone", selection: $formViewModel.selectedZone) {
                             Text("Choose zone...").tag(nil as Zone?)
-                            ForEach(availableZones) { zone in
+                            ForEach(formViewModel.availableZones) { zone in
                                 Text("\(zone.name) (\(zone.number))").tag(zone as Zone?)
                             }
                         }
                         
-                        if let zone = selectedZone {
+                        if let zone = formViewModel.selectedZone {
                             LabeledContent("Zone ID", value: zone.id)
                                 .font(.caption)
                                 .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
@@ -910,7 +885,7 @@ struct ParkingSessionEventView: View {
                     .font(.headline)
                     .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
                 Spacer()
-                Button(action: generateRandomVehicle) {
+                Button(action: { formViewModel.generateRandomVehicle() }) {
                     HStack(spacing: 4) {
                         Image(systemName: "arrow.clockwise.circle.fill")
                         Text("Random")
@@ -922,26 +897,26 @@ struct ParkingSessionEventView: View {
                 .controlSize(.small)
             }
             
-            TextField("License Plate", text: $vehiclePlate, prompt: Text("ABC1234"))
+            TextField("License Plate", text: $formViewModel.vehiclePlate, prompt: Text("ABC1234"))
                 .autocapitalization(.allCharacters)
             
             HStack {
-                TextField("State Code", text: $vehicleState, prompt: Text("CA"))
+                TextField("State Code", text: $formViewModel.vehicleState, prompt: Text("CA"))
                     .autocapitalization(.allCharacters)
                 
-                TextField("Country Code", text: $vehicleCountry, prompt: Text("US"))
+                TextField("Country Code", text: $formViewModel.vehicleCountry, prompt: Text("US"))
                     .autocapitalization(.allCharacters)
             }
             
-            TextField("Space Number (Optional)", text: $spaceNumber, prompt: Text("1-50"))
+            TextField("Space Number (Optional)", text: $formViewModel.spaceNumber, prompt: Text("1-50"))
         }
         .listRowBackground(Color.glassBackground)
         
         Section(header: Text("Session Times").foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))) {
-            DatePicker("Start Time", selection: $startTime)
+            DatePicker("Start Time", selection: $formViewModel.startTime)
             
             VStack(alignment: .leading, spacing: 8) {
-                DatePicker("End Time", selection: $endTime)
+                DatePicker("End Time", selection: $formViewModel.endTime)
                 
                 HStack(spacing: 8) {
                     Text("Quick Duration:")
@@ -949,35 +924,35 @@ struct ParkingSessionEventView: View {
                         .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                     
                     Button("30m") {
-                        endTime = startTime.addingTimeInterval(1800)
+                        formViewModel.setQuickDuration(1800)
                     }
                     .buttonStyle(.bordered)
                     .tint(Color.adaptiveCyanAccent(colorScheme == .dark))
                     .controlSize(.mini)
                     
                     Button("1h") {
-                        endTime = startTime.addingTimeInterval(3600)
+                        formViewModel.setQuickDuration(3600)
                     }
                     .buttonStyle(.bordered)
                     .tint(Color.adaptiveCyanAccent(colorScheme == .dark))
                     .controlSize(.mini)
                     
                     Button("2h") {
-                        endTime = startTime.addingTimeInterval(7200)
+                        formViewModel.setQuickDuration(7200)
                     }
                     .buttonStyle(.bordered)
                     .tint(Color.adaptiveCyanAccent(colorScheme == .dark))
                     .controlSize(.mini)
                     
                     Button("4h") {
-                        endTime = startTime.addingTimeInterval(14400)
+                        formViewModel.setQuickDuration(14400)
                     }
                     .buttonStyle(.bordered)
                     .tint(Color.adaptiveCyanAccent(colorScheme == .dark))
                     .controlSize(.mini)
                     
                     Button("8h") {
-                        endTime = startTime.addingTimeInterval(28800)
+                        formViewModel.setQuickDuration(28800)
                     }
                     .buttonStyle(.bordered)
                     .tint(Color.adaptiveCyanAccent(colorScheme == .dark))
@@ -993,7 +968,7 @@ struct ParkingSessionEventView: View {
                     .font(.headline)
                     .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
                 Spacer()
-                Button(action: generateRandomFees) {
+                Button(action: { formViewModel.generateRandomFees() }) {
                     HStack(spacing: 4) {
                         Image(systemName: "arrow.clockwise.circle.fill")
                         Text("Random")
@@ -1008,7 +983,7 @@ struct ParkingSessionEventView: View {
             HStack {
                 Text("Parking Fee")
                 Spacer()
-                TextField("Amount", text: $parkingFee)
+                TextField("Amount", text: $formViewModel.parkingFee)
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.trailing)
                     .frame(width: 80)
@@ -1017,7 +992,7 @@ struct ParkingSessionEventView: View {
             HStack {
                 Text("Convenience Fee")
                 Spacer()
-                TextField("Amount", text: $convenienceFee)
+                TextField("Amount", text: $formViewModel.convenienceFee)
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.trailing)
                     .frame(width: 80)
@@ -1026,7 +1001,7 @@ struct ParkingSessionEventView: View {
             HStack {
                 Text("Tax")
                 Spacer()
-                TextField("Amount", text: $tax)
+                TextField("Amount", text: $formViewModel.tax)
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.trailing)
                     .frame(width: 80)
@@ -1035,7 +1010,7 @@ struct ParkingSessionEventView: View {
             HStack {
                 Text("Currency Code")
                 Spacer()
-                TextField("USD", text: $currencyCode)
+                TextField("USD", text: $formViewModel.currencyCode)
                     .autocapitalization(.allCharacters)
                     .multilineTextAlignment(.trailing)
                     .frame(width: 80)
@@ -1044,10 +1019,10 @@ struct ParkingSessionEventView: View {
         .listRowBackground(Color.glassBackground)
         
         Section(header: Text("Optional").foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))) {
-            TextField("Account ID", text: $accountId, prompt: Text("User account UUID"))
+            TextField("Account ID", text: $formViewModel.accountId, prompt: Text("User account UUID"))
                 .autocapitalization(.none)
             
-            TextField("Rate Name", text: $rateName, prompt: Text("e.g., $1.25/hour"))
+            TextField("Rate Name", text: $formViewModel.rateName, prompt: Text("e.g., $1.25/hour"))
         }
         .listRowBackground(Color.glassBackground)
     }
@@ -1069,140 +1044,6 @@ struct ParkingSessionEventView: View {
         return "Unknown Zone"
     }
     
-    // MARK: - Actions
-    
-    private func generateRandomVehicle() {
-        let letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        let numbers = "0123456789"
-        
-        // Generate random plate (3 letters + 4 numbers)
-        let randomLetters = String((0..<3).map { _ in letters.randomElement()! })
-        let randomNumbers = String((0..<4).map { _ in numbers.randomElement()! })
-        vehiclePlate = randomLetters + randomNumbers
-        
-        // Random US state
-        let states = ["CA", "NY", "TX", "FL", "IL", "PA", "OH", "GA", "NC", "MI", 
-                      "NJ", "VA", "WA", "AZ", "MA", "TN", "IN", "MO", "MD", "WI",
-                      "CO", "MN", "SC", "AL", "LA", "KY", "OR", "OK", "CT", "UT"]
-        vehicleState = states.randomElement()!
-        
-        vehicleCountry = "US"
-        
-        // Random space number (optional, 50% chance) - integer between 1-50
-        if Bool.random() {
-            spaceNumber = String(Int.random(in: 1...50))
-        } else {
-            spaceNumber = ""
-        }
-    }
-    
-    private func generateRandomFees() {
-        // Generate realistic parking fees
-        let parkingAmounts = ["0.50", "1.00", "1.25", "1.50", "2.00", "2.50", "3.00", "4.00", "5.00"]
-        parkingFee = parkingAmounts.randomElement()!
-        
-        // Convenience fee typically 10-20% of parking or fixed small amount
-        let convenienceAmounts = ["0.25", "0.35", "0.50", "0.75"]
-        convenienceFee = convenienceAmounts.randomElement()!
-        
-        // Tax typically small percentage
-        let taxAmounts = ["0.10", "0.15", "0.20", "0.25", "0.30"]
-        tax = taxAmounts.randomElement()!
-        
-        currencyCode = "USD"
-    }
-    
-    private func loadZonesForOperator(_ op: Operator) {
-        Task {
-            isLoadingZones = true
-            do {
-                availableZones = try await apiService.fetchZones(forOperatorId: op.id)
-            } catch {
-                print("Failed to load zones: \(error)")
-                availableZones = []
-            }
-            isLoadingZones = false
-        }
-    }
-    
-    private func submitStartSession() {
-        guard let op = selectedOperator else { return }
-        
-        let operatorId = op.id
-        let zoneIdType: ZoneIDType = useExternalZoneId ? .external : .passport
-        let zoneId: String = useExternalZoneId ? externalZoneId : (selectedZone?.id ?? "")
-        let zoneName: String? = useExternalZoneId ? nil : selectedZone?.name
-        
-        Task {
-            do {
-                let fees = EventFees(
-                    parkingFee: parkingFee,
-                    convenienceFee: convenienceFee,
-                    tax: tax,
-                    currencyCode: currencyCode
-                )
-                
-                try await viewModel.publishStartedEvent(
-                    sessionId: previewSessionId,
-                    operatorId: operatorId,
-                    zoneIdType: zoneIdType,
-                    zoneId: zoneId,
-                    zoneName: zoneName,
-                    vehiclePlate: vehiclePlate,
-                    vehicleState: vehicleState,
-                    vehicleCountry: vehicleCountry,
-                    spaceNumber: spaceNumber.isEmpty ? nil : spaceNumber,
-                    startTime: startTime,
-                    endTime: endTime,
-                    accountId: accountId.isEmpty ? nil : accountId,
-                    eventFees: fees,
-                    rateName: rateName.isEmpty ? nil : rateName,
-                    locationDetails: nil,
-                    payment: nil
-                )
-                clearStartForm()
-                // Generate new session ID for next session
-                previewSessionId = ParkingSession.generateSessionId()
-                // Close the sheet if it's open
-                showingStartForm = false
-            } catch {}
-        }
-    }
-    
-    private var isStartFormValid: Bool {
-        guard selectedOperator != nil else { return false }
-        
-        let hasValidZone = useExternalZoneId ? !externalZoneId.isEmpty : selectedZone != nil
-        
-        return hasValidZone &&
-        !vehiclePlate.isEmpty &&
-        !vehicleState.isEmpty &&
-        !parkingFee.isEmpty &&
-        !convenienceFee.isEmpty &&
-        !tax.isEmpty &&
-        !currencyCode.isEmpty &&
-        endTime > startTime
-    }
-    
-    private func clearStartForm() {
-        selectedOperator = nil
-        selectedZone = nil
-        externalZoneId = ""
-        availableZones = []
-        useExternalZoneId = false
-        vehiclePlate = ""
-        vehicleState = ""
-        vehicleCountry = "US"
-        spaceNumber = ""
-        startTime = Date()
-        endTime = Date().addingTimeInterval(3600)
-        accountId = ""
-        parkingFee = "1.25"
-        convenienceFee = "0.25"
-        tax = "0.10"
-        currencyCode = "USD"
-        rateName = ""
-    }
 }
 
 #Preview {
@@ -1210,29 +1051,11 @@ struct ParkingSessionEventView: View {
         for: ParkingSession.self, Operator.self,
         configurations: ModelConfiguration(isStoredInMemoryOnly: true)
     )
+    let service = PreviewEnvironment.makePreviewService()
     
     return NavigationStack {
-        ParkingSessionEventView(
-            apiService: PassportAPIService(
-                config: OAuthConfiguration(
-                    tokenURL: URL(string: "https://api.us.passportinc.com/v3/shared/access-tokens")!,
-                    client_id: "test",
-                    client_secret: "test",
-                    audience: "public.api.passportinc.com",
-                    clientTraceId: "test"
-                )
-            ),
-            modelContext: container.mainContext
-        )
-        .environmentObject(PassportAPIService(
-            config: OAuthConfiguration(
-                tokenURL: URL(string: "https://api.us.passportinc.com/v3/shared/access-tokens")!,
-                client_id: "test",
-                client_secret: "test",
-                audience: "public.api.passportinc.com",
-                clientTraceId: "test"
-            )
-        ))
-        .modelContainer(container)
+        ParkingSessionEventView()
     }
+    .environmentObject(service)
+    .modelContainer(container)
 }

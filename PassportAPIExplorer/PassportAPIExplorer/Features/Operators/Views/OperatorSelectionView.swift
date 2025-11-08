@@ -19,8 +19,7 @@ struct OperatorSelectionView: View {
     @State private var isRefreshing = false
     
     var body: some View {
-        NavigationStack {
-            VStack {
+        VStack {
                 if operators.isEmpty {
                     VStack(spacing: 20) {
                         Image(systemName: "building.2")
@@ -88,46 +87,45 @@ struct OperatorSelectionView: View {
                         await refreshOperators()
                     }
                 }
-            }
-            .navigationTitle(isRefreshing ? "Refreshing..." : "Operators")
-            .adaptiveGlassmorphismNavigation()
-            .adaptiveGlassmorphismBackground()
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {
-                        showingAddOperator = true
-                    }) {
-                        Image(systemName: "plus")
-                            .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
-                    }
+        }
+        .navigationTitle(isRefreshing ? "Refreshing..." : "Operators")
+        .adaptiveGlassmorphismNavigation()
+        .adaptiveGlassmorphismBackground()
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: {
+                    showingAddOperator = true
+                }) {
+                    Image(systemName: "plus")
+                        .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
                 }
             }
-            .sheet(isPresented: $showingAddOperator) {
-                AddOperatorView()
-            }
-            .sheet(item: $operatorToEdit) { op in
-                EditOperatorView(operatorToEdit: op)
-            }
-            .onAppear {
-                print("👁️ [OPERATOR VIEW] Operator selection view appeared")
-                print("📅 [OPERATOR VIEW] Time: \(Date())")
-                print("🔍 [OPERATOR VIEW] Loaded operators count: \(operators.count)")
-                
-                if operators.isEmpty {
-                    print("⚠️ [OPERATOR VIEW] No operators found")
-                } else {
-                    print("📋 [OPERATOR VIEW] Current operators:")
-                    for (index, op) in operators.enumerated() {
-                        print("   [OPERATOR VIEW] \(index + 1). '\(op.name)' (ID: \(op.id))")
-                    }
+        }
+        .sheet(isPresented: $showingAddOperator) {
+            AddOperatorView()
+        }
+        .sheet(item: $operatorToEdit) { op in
+            EditOperatorView(operatorToEdit: op)
+        }
+        .onAppear {
+            print("👁️ [OPERATOR VIEW] Operator selection view appeared")
+            print("📅 [OPERATOR VIEW] Time: \(Date())")
+            print("🔍 [OPERATOR VIEW] Loaded operators count: \(operators.count)")
+            
+            if operators.isEmpty {
+                print("⚠️ [OPERATOR VIEW] No operators found")
+            } else {
+                print("📋 [OPERATOR VIEW] Current operators:")
+                for (index, op) in operators.enumerated() {
+                    print("   [OPERATOR VIEW] \(index + 1). '\(op.name)' (ID: \(op.id))")
                 }
-                
-                if dataService == nil {
-                    print("🔧 [OPERATOR VIEW] Initializing OperatorDataService...")
-                    dataService = OperatorDataService(modelContext: modelContext)
-                    print("🔄 [OPERATOR VIEW] Checking for mock data migration...")
-                    dataService?.migrateFromMockDataIfNeeded()
-                }
+            }
+            
+            if dataService == nil {
+                print("🔧 [OPERATOR VIEW] Initializing OperatorDataService...")
+                dataService = OperatorDataService(modelContext: modelContext)
+                print("🔄 [OPERATOR VIEW] Checking for mock data migration...")
+                dataService?.migrateFromMockDataIfNeeded()
             }
         }
     }
@@ -179,8 +177,6 @@ struct OperatorCardView: View {
     let `operator`: Operator
     let colorScheme: ColorScheme
     
-    @State private var isPressed = false
-    
     var body: some View {
         NavigationLink(destination: OperatorView(selectedOperator: `operator`)) {
             VStack(alignment: .leading, spacing: 6) {
@@ -207,12 +203,6 @@ struct OperatorCardView: View {
         }
         .adaptiveGlassmorphismListRow()
         .buttonStyle(PlainButtonStyle())
-        .scaleEffect(isPressed ? 0.97 : 1.0)
-        .opacity(isPressed ? 0.8 : 1.0)
-        .animation(.easeInOut(duration: 0.1), value: isPressed)
-        .onLongPressGesture(minimumDuration: 0, pressing: { pressing in
-            isPressed = pressing
-        }, perform: {})
     }
     
     private func environmentColor(for environment: OperatorEnvironment) -> Color {
@@ -228,7 +218,9 @@ struct OperatorCardView: View {
 }
 
 #Preview {
-    OperatorSelectionView()
-        .modelContainer(for: Operator.self, inMemory: true)
+    NavigationStack {
+        OperatorSelectionView()
+    }
+    .modelContainer(for: Operator.self, inMemory: true)
 }
 

@@ -12,20 +12,7 @@ struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var selection: String? = nil
     @AppStorage("selectedThemeMode") private var selectedThemeMode: ThemeMode = .auto
-    let passportAPIService: PassportAPIService
-
-    init() {
-        // Load secrets/config and create the shared Passport API service once
-        let secrets = try! SecretsLoader.load()
-        let config = OAuthConfiguration(
-            tokenURL: URL(string: "https://api.us.passportinc.com/v3/shared/access-tokens")!,
-            client_id: secrets.client_id,
-            client_secret: secrets.client_secret,
-            audience: "public.api.passportinc.com",
-            clientTraceId: "danko-test"
-        )
-        self.passportAPIService = PassportAPIService(config: config)
-    }
+    @EnvironmentObject var passportAPIService: PassportAPIService
 
     var body: some View {
         TabView {
@@ -35,18 +22,16 @@ struct ContentView: View {
             .tabItem {
                 Label("Parking Rights", systemImage: "network")
             }
-            .environmentObject(passportAPIService)
             
             NavigationStack{
-                ParkingSessionEventView(apiService: passportAPIService, modelContext: modelContext)
+                ParkingSessionEventView()
             }
             .tabItem {
-                Label("Parking Events", systemImage: "paperplane.fill")
+                Label("Parking Sessions", systemImage: "paperplane.fill")
             }
-            .environmentObject(passportAPIService)
             
             NavigationStack{
-                SettingsTabRootView(passportAPIService: passportAPIService)
+                SettingsTabRootView()
             }
             .tabItem {
                 Label("Settings", systemImage: "gearshape")
@@ -59,5 +44,6 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
+        .environmentObject(PreviewEnvironment.makePreviewService())
         .modelContainer(for: Operator.self, inMemory: true)
 }

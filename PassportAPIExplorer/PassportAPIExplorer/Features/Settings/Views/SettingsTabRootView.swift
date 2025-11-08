@@ -8,14 +8,10 @@
 import SwiftUI
 
 struct SettingsTabRootView: View {
-    let passportAPIService: PassportAPIService
+    @EnvironmentObject var passportAPIService: PassportAPIService
     @AppStorage("selectedThemeMode") private var selectedThemeMode: ThemeMode = .auto
     @Environment(\.colorScheme) var colorScheme
     @State private var showingThemeSettings = false
-    
-    init(passportAPIService: PassportAPIService) {
-        self.passportAPIService = passportAPIService
-    }
     
     var body: some View {
         NavigationStack {
@@ -38,7 +34,7 @@ struct SettingsTabRootView: View {
                 .listRowBackground(Color.adaptiveGlassBackground(colorScheme == .dark))
                 
                 Section("Debug Tools") {
-                    NavigationLink("Token Test", destination: TokenTestView(passportAPIService: passportAPIService))
+                    NavigationLink("Token Test", destination: TokenTestView())
                 }
                 .listRowBackground(Color.adaptiveGlassBackground(colorScheme == .dark))
                 
@@ -104,5 +100,6 @@ struct SettingsTabRootView: View {
     )
     let passportAPIService = PassportAPIService(config: config)
     
-    return SettingsTabRootView(passportAPIService: passportAPIService)
+    return SettingsTabRootView()
+        .environmentObject(passportAPIService)
 }
