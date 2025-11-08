@@ -441,24 +441,59 @@ final class PassportAPIService: ObservableObject {
 //        return result
 //    }
     
-    /// Fetches parking rights (active parking permits) for a specific operator and zone.
-    /// API endpoint: GET /v4/enforcement/parking-rights?operator_id={id}&zone_id={id}
+    /// Fetches parking rights (active parking permits) for a specific operator.
+    /// API endpoint: GET /v4/enforcement/parking-rights?operator_id={id}&zone_id={id}&space_number={num}&vehicle_plate={plate}&vehicle_state={state}
     /// Parking rights represent vehicles that have permission to park in a zone.
-    func fetchParkingRights(forOperatorId operatorId: String, zoneId: String) async throws -> [ParkingRight] {
+    /// - Parameters:
+    ///   - operatorId: Required operator ID
+    ///   - zoneId: Optional zone ID (required if space_number is provided)
+    ///   - spaceNumber: Optional space number
+    ///   - vehiclePlate: Optional vehicle license plate
+    ///   - vehicleState: Optional vehicle state (ISO 3166-2)
+    func fetchParkingRights(
+        forOperatorId operatorId: String,
+        zoneId: String? = nil,
+        spaceNumber: String? = nil,
+        vehiclePlate: String? = nil,
+        vehicleState: String? = nil
+    ) async throws -> [ParkingRight] {
         // Build URL with query parameters using URLComponents for proper encoding
         var components = URLComponents(string: "\(baseURL)/v4/enforcement/parking-rights")!
-        components.queryItems = [
-            URLQueryItem(name: "operator_id", value: operatorId.lowercased()),
-            URLQueryItem(name: "zone_id", value: zoneId)
+        var queryItems: [URLQueryItem] = [
+            URLQueryItem(name: "operator_id", value: operatorId.lowercased())
         ]
+        
+        // Conditionally add zone_id if provided
+        if let zoneId = zoneId, !zoneId.isEmpty {
+            queryItems.append(URLQueryItem(name: "zone_id", value: zoneId))
+        }
+        
+        // Conditionally add space/vehicle parameters if provided
+        if let spaceNumber = spaceNumber, !spaceNumber.isEmpty {
+            queryItems.append(URLQueryItem(name: "space_number", value: spaceNumber))
+        }
+        if let vehiclePlate = vehiclePlate, !vehiclePlate.isEmpty {
+            queryItems.append(URLQueryItem(name: "vehicle_plate", value: vehiclePlate))
+        }
+        if let vehicleState = vehicleState, !vehicleState.isEmpty {
+            queryItems.append(URLQueryItem(name: "vehicle_state", value: vehicleState))
+        }
+        
+        components.queryItems = queryItems
         
         guard let url = components.url else {
             throw NSError(domain: "URL", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to construct URL"])
         }
         
-        print("🚗 Fetching parking rights for operator: \(operatorId), zone: \(zoneId)")
+        var logParams = "operator_id=\(operatorId.lowercased())"
+        if let zoneId = zoneId { logParams += ", zone_id=\(zoneId)" }
+        if let spaceNumber = spaceNumber, !spaceNumber.isEmpty { logParams += ", space_number=\(spaceNumber)" }
+        if let vehiclePlate = vehiclePlate, !vehiclePlate.isEmpty { logParams += ", vehicle_plate=\(vehiclePlate)" }
+        if let vehicleState = vehicleState, !vehicleState.isEmpty { logParams += ", vehicle_state=\(vehicleState)" }
+        
+        print("🚗 Fetching parking rights for operator: \(operatorId)")
         print("🚗 URL: \(url.absoluteString)")
-        print("🚗 Query parameters: operator_id=\(operatorId.lowercased()), zone_id=\(zoneId)")
+        print("🚗 Query parameters: \(logParams)")
         
         // Create a wrapper response model for the API
         struct ParkingRightsResponse: Codable {

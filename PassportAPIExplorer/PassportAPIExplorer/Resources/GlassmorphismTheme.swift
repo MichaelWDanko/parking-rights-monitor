@@ -336,6 +336,72 @@ struct AdaptiveGlassmorphismListRow: ViewModifier {
     }
 }
 
+// MARK: - Floating Search Section Style (matches TabView material)
+struct AdaptiveFloatingSearchSectionStyle: ViewModifier {
+    let isExpanded: Bool
+    @Environment(\.colorScheme) var colorScheme
+    
+    func body(content: Content) -> some View {
+        let isDark = colorScheme == .dark
+        
+        content
+            .background(
+                ZStack {
+                    if isExpanded {
+                        // Use the same material as TabView tab bar when expanded
+                        RoundedRectangle(cornerRadius: 20)
+                            .fill(.regularMaterial)
+                        
+                        // Tint overlay for better contrast
+                        RoundedRectangle(cornerRadius: 20)
+                            .fill(
+                                isDark ?
+                                // Use lighter navy blue for more blue tint (less black)
+                                Color.navyBlueLight.opacity(0.4) :
+                                // Use darker blue tint for better contrast in light mode
+                                Color.adaptiveBackgroundDark(isDark).opacity(0.5)
+                            )
+                    } else {
+                        // Use material blur when collapsed too, for consistent reflective/distorting effect
+                        // Use ultraThinMaterial for a lighter blur effect when collapsed
+                        RoundedRectangle(cornerRadius: 20)
+                            .fill(.ultraThinMaterial)
+                        
+                        // Tint overlay for better contrast when collapsed
+                        RoundedRectangle(cornerRadius: 20)
+                            .fill(
+                                isDark ?
+                                // Use lighter navy blue for more blue tint (less black)
+                                Color.navyBlueLight.opacity(0.35) :
+                                // Use darker blue tint for better contrast in light mode
+                                Color.adaptiveBackgroundDark(isDark).opacity(0.45)
+                            )
+                    }
+                    
+                    // Border - more visible in light mode for better distinction
+                    RoundedRectangle(cornerRadius: 20)
+                        .stroke(
+                            LinearGradient(
+                                colors: isDark ? [
+                                    Color.white.opacity(0.3),
+                                    Color.white.opacity(0.1)
+                                ] : [
+                                    // Use darker color for light mode border visibility
+                                    Color.black.opacity(0.15),
+                                    Color.black.opacity(0.08)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: isDark ? 1 : 1.5
+                        )
+                }
+            )
+            .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 5)
+            .shadow(color: Color.cyanAccent.opacity(0.1), radius: 20, x: 0, y: 10)
+    }
+}
+
 extension View {
     
     func adaptiveGlassmorphismNavigation() -> some View {
@@ -360,6 +426,10 @@ extension View {
     
     func adaptiveGlassmorphismTabView() -> some View {
         modifier(AdaptiveGlassmorphismTabViewStyle())
+    }
+    
+    func adaptiveFloatingSearchSection(isExpanded: Bool) -> some View {
+        modifier(AdaptiveFloatingSearchSectionStyle(isExpanded: isExpanded))
     }
 }
 
