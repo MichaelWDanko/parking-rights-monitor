@@ -4,67 +4,93 @@
 
 Move business logic, state management, and validation from views into ViewModels to properly follow MVVM patterns.
 
+## Status: ✅ COMPLETED
+
+All critical MVVM violations have been resolved. The codebase now follows MVVM patterns with proper separation of concerns.
+
 ## Architecture Decision
 
 - Use the Observation framework’s `@Observable` macro for all new and refactored ViewModels (iOS 17+/Swift 5.9+). This replaces `ObservableObject` + `@Published`.
 - In views, hold VMs with `@State var viewModel = ...` (not `@StateObject`). Use `@Bindable` for two-way bindings in subviews.
 - Ensure UI-driving mutations occur on the main actor.
 
-## Current Issues Identified
+## Issues Identified (All Resolved ✅)
 
-### Critical (Major MVVM Violations)
+### ✅ Critical (Major MVVM Violations) - RESOLVED
 
-1. **ParkingRightListView** - Contains state management and API calls
+1. ✅ **ParkingRightListView** - State management and API calls moved to ViewModel
 
-   - `@State` properties: `searchText`, `parkingRights`, `isLoadingRights`, `rightsError`
-   - `loadParkingRights()` method performs API calls
-   - `filteredRights` computed property for filtering logic
+   - ✅ Moved `@State` properties: `searchText`, `parkingRights`, `isLoadingRights`, `rightsError` → `ParkingRightListViewModel`
+   - ✅ Moved `loadParkingRights()` method → `ParkingRightListViewModel`
+   - ✅ Moved `filteredRights` computed property → `ParkingRightListViewModel`
 
-2. **ParkingSessionEventView** - Contains extensive business logic
+2. ✅ **ParkingSessionEventView** - Business logic moved to ViewModels
 
-   - 20+ `@State` properties for form fields
-   - `generateRandomVehicle()`, `generateRandomFees()` - utility methods
-   - `loadZonesForOperator()` - API call logic
-   - `submitStartSession()` - business logic
-   - `isStartFormValid` - validation logic
-   - `clearStartForm()` - state management
+   - ✅ Moved 20+ `@State` properties for form fields → `ParkingSessionEventFormViewModel`
+   - ✅ Moved `generateRandomVehicle()`, `generateRandomFees()` → `ParkingSessionEventFormViewModel`
+   - ✅ Moved `loadZonesForOperator()` → `ParkingSessionEventFormViewModel`
+   - ✅ Moved `submitStartSession()`, `submitExtendSession()`, `submitStopSession()` → `ParkingSessionEventFormViewModel`
+   - ✅ Moved `isStartFormValid` → `ParkingSessionEventFormViewModel`
+   - ✅ Moved `clearStartForm()` → `ParkingSessionEventFormViewModel`
+   - ✅ Split session management into `ParkingSessionsListViewModel` (CRUD operations)
+   - ✅ Split API event publishing into `ParkingSessionEventPublisherViewModel` (API interactions)
 
-### Minor (Could be improved)
+### ✅ Minor (Could be improved) - COMPLETED
 
-3. **AddOperatorView** / **EditOperatorView** - Validation logic in views
-4. **OperatorSelectionView** - Direct SwiftData manipulation (acceptable but could use ViewModel)
+3. ✅ **AddOperatorView** / **EditOperatorView** - Validation logic moved to ViewModels
+4. **OperatorSelectionView** - Direct SwiftData manipulation (acceptable as-is; uses `@Query` which is SwiftUI's recommended pattern for SwiftData)
 
 ## Refactoring Plan
 
-### Phase 1: Create ParkingRightListViewModel
+### ✅ Phase 1: Create ParkingRightListViewModel - COMPLETED
 
-**File:** `ViewModels/ParkingRightListViewModel.swift` (new)
+**File:** `Features/ParkingRights/ViewModels/ParkingRightListViewModel.swift` ✅
 
-- Move all `@State` properties from `ParkingRightListView`
-- Move `loadParkingRights()` method
-- Move `filteredRights` computed property
-- Use `@Observable` macro (modern Swift, consistent with `OperatorViewModel`)
-- Update `ParkingRightListView` to use the ViewModel
+- ✅ Moved all `@State` properties from `ParkingRightListView`
+- ✅ Moved `loadParkingRights()` method
+- ✅ Moved `filteredRights` computed property
+- ✅ Used `@Observable` macro (modern Swift, consistent with `OperatorViewModel`)
+- ✅ Updated `ParkingRightListView` to use the ViewModel
 
-### Phase 2: Create ParkingSessionEventFormViewModel
+### ✅ Phase 2: Create ParkingSessionEventFormViewModel - COMPLETED
 
-**File:** `ViewModels/ParkingSessionEventFormViewModel.swift` (new)
+**File:** `Features/ParkingSessions/ViewModels/ParkingSessionEventFormViewModel.swift` ✅
 
-- Move all form-related `@State` properties from `ParkingSessionEventView`
-- Move `generateRandomVehicle()`, `generateRandomFees()` methods
-- Move `loadZonesForOperator()` method
-- Move `isStartFormValid` computed property
-- Move `clearStartForm()` method
-- Move `submitStartSession()` orchestration logic (keep API calls in existing `ParkingSessionEventViewModel`)
-- Note: Keep `ParkingSessionEventViewModel` for session management, create separate ViewModel for form state
+- ✅ Moved all form-related `@State` properties from `ParkingSessionEventView`
+- ✅ Moved `generateRandomVehicle()`, `generateRandomFees()` methods
+- ✅ Moved `loadZonesForOperator()` method
+- ✅ Moved `isStartFormValid` computed property
+- ✅ Moved `clearStartForm()` method
+- ✅ Moved `submitStartSession()`, `submitExtendSession()`, `submitStopSession()` orchestration logic
 
-### Phase 3: Create OperatorFormViewModel (Optional Enhancement)
+**Additional Work Completed:**
 
-**Files:** `ViewModels/AddOperatorViewModel.swift`, `ViewModels/EditOperatorViewModel.swift` (new)
+- ✅ Split `ParkingSessionEventViewModel` into three focused ViewModels:
+  - `ParkingSessionsListViewModel` - Manages the collection of `ParkingSession` objects (CRUD operations, SwiftData sync)
+  - `ParkingSessionEventPublisherViewModel` - Handles publishing events to the Passport API (started, extended, stopped)
+  - `ParkingSessionEventFormViewModel` - Manages form state and validation for creating/editing sessions
+- ✅ Renamed `ParkingSessionEventListViewModel` → `ParkingSessionsListViewModel` to reflect that it manages sessions (not events)
+- ✅ Updated all references across the codebase
 
-- Move validation logic from `AddOperatorView` and `EditOperatorView`
-- Move save/update logic orchestration
-- Keep direct SwiftData operations acceptable if preferred
+### ✅ Phase 3: Create OperatorFormViewModel - COMPLETED
+
+**Files:** 
+- `Features/Operators/ViewModels/AddOperatorViewModel.swift` ✅
+- `Features/Operators/ViewModels/EditOperatorViewModel.swift` ✅
+
+- ✅ Moved validation logic from `AddOperatorView` and `EditOperatorView`
+- ✅ Moved save/update logic orchestration
+- ✅ Used `@Observable` macro with `@Bindable` for two-way bindings
+
+### ✅ Additional: Feature-Based Folder Structure - COMPLETED
+
+- ✅ Organized files into feature-based folders:
+  - `Features/Operators/` - Operator-related Views and ViewModels
+  - `Features/ParkingRights/` - Parking Rights Views and ViewModels
+  - `Features/ParkingSessions/` - Parking Sessions Views and ViewModels
+  - `Features/Settings/` - Settings Views
+  - `Shared/Views/` - Shared Views (ContentView)
+- ✅ Updated all file references and verified build succeeds
 
 ## Implementation Details
 
@@ -169,24 +195,65 @@ Notes:
 - Prefer `@Bindable var vm = viewModel` inside subviews for concise `$vm.property` bindings.
 - Keep long-running/async work off the main thread, but hop to `MainActor.run` to update UI state.
 
-## Files to Modify
+## Files Created/Modified
 
-### New Files
+### ✅ New Files Created
 
-- `PassportAPIExplorer/ViewModels/ParkingRightListViewModel.swift`
-- `PassportAPIExplorer/ViewModels/ParkingSessionEventFormViewModel.swift`
-- `PassportAPIExplorer/ViewModels/AddOperatorViewModel.swift` (optional)
-- `PassportAPIExplorer/ViewModels/EditOperatorViewModel.swift` (optional)
+- ✅ `Features/ParkingRights/ViewModels/ParkingRightListViewModel.swift`
+- ✅ `Features/ParkingSessions/ViewModels/ParkingSessionEventFormViewModel.swift`
+- ✅ `Features/ParkingSessions/ViewModels/ParkingSessionsListViewModel.swift`
+- ✅ `Features/ParkingSessions/ViewModels/ParkingSessionEventPublisherViewModel.swift`
+- ✅ `Features/Operators/ViewModels/AddOperatorViewModel.swift`
+- ✅ `Features/Operators/ViewModels/EditOperatorViewModel.swift`
 
-### Modified Files
+### ✅ Modified Files
 
-- `PassportAPIExplorer/Views/ParkingRightListView.swift`
-- `PassportAPIExplorer/Views/ParkingSessionEventView.swift`
-- `PassportAPIExplorer/Views/AddOperatorView.swift` (if creating ViewModel)
-- `PassportAPIExplorer/Views/EditOperatorView.swift` (if creating ViewModel)
+- ✅ `Features/ParkingRights/Views/ParkingRightListView.swift`
+- ✅ `Features/ParkingSessions/Views/ParkingSessionEventView.swift`
+- ✅ `Features/Operators/Views/AddOperatorView.swift`
+- ✅ `Features/Operators/Views/EditOperatorView.swift`
+- ✅ `Shared/Views/ContentView.swift` (updated tab label to "Parking Sessions")
+
+### File Organization
+
+- ✅ All files reorganized into feature-based folder structure
+- ✅ Old `ViewModels/` and `Views/` directories cleaned up
 
 ## MVVM Principles Applied
 
-- **Models**: Data structures (already correct)
-- **Views**: Only UI/presentation logic (to be fixed)
-- **ViewModels**: Business logic, state management, validation (to be created/expanded)
+- ✅ **Models**: Data structures (already correct)
+- ✅ **Views**: Only UI/presentation logic (now properly separated)
+- ✅ **ViewModels**: Business logic, state management, validation (all created and properly structured)
+
+## Remaining Work
+
+### None - All Critical MVVM Violations Resolved ✅
+
+**Optional Future Enhancements:**
+
+1. **OperatorSelectionView** - Could create a ViewModel if needed, but current implementation using `@Query` is acceptable and follows SwiftUI/SwiftData best practices for simple list views.
+
+2. **Settings Views** - Currently simple views with minimal logic. Could add ViewModels if they grow in complexity.
+
+## Key Architectural Decisions Made
+
+1. **ViewModel Naming Convention:**
+   - `ParkingSessionsListViewModel` - Manages collections of sessions (plural "Sessions")
+   - `ParkingSessionEventPublisherViewModel` - Publishes events to API (singular "Event")
+   - `ParkingSessionEventFormViewModel` - Manages form state for events (singular "Event")
+
+2. **Separation of Concerns:**
+   - Split original `ParkingSessionEventViewModel` into three focused ViewModels:
+     - List management (CRUD operations)
+     - Event publishing (API interactions)
+     - Form state (user input/validation)
+
+3. **File Organization:**
+   - Feature-based folder structure for better maintainability
+   - Clear separation between Views and ViewModels within each feature
+
+4. **Modern Swift Patterns:**
+   - Using `@Observable` macro instead of `ObservableObject` + `@Published`
+   - Using `@State` to hold ViewModels in views
+   - Using `@Bindable` for two-way bindings in subviews
+   - All ViewModels marked with `@MainActor` for thread safety
