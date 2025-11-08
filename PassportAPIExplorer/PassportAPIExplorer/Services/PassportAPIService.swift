@@ -10,6 +10,9 @@ import Combine
 
 // MARK: - Configuration and Secrets
 
+/// OAuth 2.0 Client Credentials configuration for Passport API authentication.
+/// This struct holds the credentials needed to obtain an access token using the
+/// OAuth 2.0 client credentials flow (no user interaction required).
 struct OAuthConfiguration {
     let tokenURL: URL
     let client_id: String
@@ -20,9 +23,13 @@ struct OAuthConfiguration {
 
 enum SecretsError: Error { case fileMissing, decodeFailed }
 
+/// Loads OAuth credentials from a Secrets.json file in the app bundle.
+/// This keeps sensitive credentials out of source code (Secrets.json is gitignored).
 enum SecretsLoader {
     struct Secrets: Decodable { let client_id: String; let client_secret: String }
 
+    /// Loads and decodes the Secrets.json file containing OAuth credentials.
+    /// Throws an error if the file is missing or invalid JSON.
     static func load() throws -> Secrets {
         guard let url = Bundle.main.url(forResource: "Secrets", withExtension: "json") else {
             throw NSError(domain: "Secrets", code: -1, userInfo: [NSLocalizedDescriptionKey: "Secrets.json file not found. Please create a Secrets.json file with your client_id and client_secret."])
@@ -38,7 +45,8 @@ enum SecretsLoader {
 
 // MARK: - Token Management
 
-// Public struct for token response
+/// Public-facing OAuth token response structure.
+/// Contains the access token and metadata returned from the OAuth token endpoint.
 struct TokenResponse {
     let accessToken: String
     let tokenType: String
@@ -60,6 +68,8 @@ struct TokenResponse {
     }
 }
 
+/// Internal OAuth token response model matching the API's JSON structure.
+/// Uses snake_case keys to match the API response format exactly.
 private struct OAuthTokenResponse: Decodable, Sendable {
     let access_token: String
     let token_type: String
@@ -67,6 +77,7 @@ private struct OAuthTokenResponse: Decodable, Sendable {
     let scope: String?
     let expires_at: String?
     
+    /// Maps JSON keys (snake_case) to Swift properties (camelCase)
     enum CodingKeys: String, CodingKey {
         case access_token
         case token_type
@@ -101,6 +112,8 @@ private struct OAuthTokenResponse: Decodable, Sendable {
     }
 }
 
+/// Protocol for storing OAuth access tokens.
+/// Allows different storage implementations (in-memory, keychain, etc.)
 private protocol TokenStore {
     var accessToken: String? { get async }
     var expiryDate: Date? { get async }
@@ -108,6 +121,8 @@ private protocol TokenStore {
     func clear() async
 }
 
+/// In-memory token storage implementation.
+/// Tokens are lost when the app terminates (suitable for development/testing).
 private final class InMemoryTokenStore: TokenStore, @unchecked Sendable {
     private var _accessToken: String?
     private var _expiryDate: Date?
@@ -128,6 +143,9 @@ private final class InMemoryTokenStore: TokenStore, @unchecked Sendable {
     }
 }
 
+/// Manages OAuth token lifecycle: fetching, caching, and refreshing tokens.
+/// Uses Swift's actor model for thread-safe token management.
+/// Automatically refreshes tokens when they expire (with 60-second buffer).
 private actor TokenManager {
     private let config: OAuthConfiguration
     private let session: URLSession
@@ -139,10 +157,14 @@ private actor TokenManager {
         self.store = store ?? InMemoryTokenStore()
     }
 
+    /// Returns a valid access token, fetching a new one if the cached token is expired.
+    /// Checks expiration with a 60-second buffer to avoid using tokens that expire soon.
     func validAccessToken() async throws -> String {
+        // Check if we have a valid cached token (not expired, with 60s buffer)
         if let t = await store.accessToken, let exp = await store.expiryDate, Date() < exp.addingTimeInterval(-60) {
             return t
         }
+        // Token expired or missing, fetch a new one
         return try await fetchNewToken()
     }
     
@@ -160,8 +182,12 @@ private actor TokenManager {
         return response.accessToken
     }
     
+    /// Fetches a new OAuth access token from the Passport API token endpoint.
+    /// Uses OAuth 2.0 Client Credentials flow: sends client_id and client_secret
+    /// in the request body as application/x-www-form-urlencoded data.
     private func fetchNewTokenResponse() async throws -> TokenResponse {
-        // x-www-form-urlencoded body (client_id/secret IN BODY).
+        // Build form-encoded request body for OAuth 2.0 client credentials flow
+        // Note: credentials go in the BODY, not as Basic Auth headers
         let items = [
             URLQueryItem(name: "grant_type", value: "client_credentials"),
             URLQueryItem(name: "audience", value: config.audience),
@@ -170,6 +196,7 @@ private actor TokenManager {
         ].filter { ($0.value ?? "").isEmpty == false }
         var comps = URLComponents(); comps.queryItems = items
 
+        // Create POST request to token endpoint
         var req = URLRequest(url: config.tokenURL)
         req.httpMethod = "POST"
         req.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
@@ -238,10 +265,14 @@ private actor TokenManager {
 
 // MARK: - Consolidated PassportAPIService
 
+/// Main service class for interacting with the Passport API.
+/// Handles authentication, API requests, and response parsing.
+/// Uses OAuth 2.0 for authentication and automatically manages token refresh.
 final class PassportAPIService: ObservableObject {
     private let tokenManager: TokenManager
     private let session: URLSession
     private let clientTraceId: String
+    /// Base URL for all Passport API endpoints
     private let baseURL = "https://api.us.passportinc.com"
     
     init(config: OAuthConfiguration, session: URLSession = .shared, clientTraceId: String = "danko-test") {
@@ -298,12 +329,15 @@ final class PassportAPIService: ObservableObject {
         }
     }
     
+    /// Fetches all parking zones for a given operator.
+    /// API endpoint: GET /v3/shared/zones?operator_id={operator_id}
+    /// Returns an array of Zone objects wrapped in a "data" field (standard API response format).
     func fetchZones(forOperatorId operatorId: String) async throws -> [Zone] {
         let url = URL(string: "\(baseURL)/v3/shared/zones?operator_id=\(operatorId.lowercased())")!
         print("🏢 Fetching zones for operator: \(operatorId)")
         print("🏢 URL: \(url.absoluteString)")
         
-        // Create a wrapper response model for the API
+        // API returns zones wrapped in a "data" array: { "data": [Zone...] }
         struct ZonesResponse: Codable {
             let data: [Zone]
         }
@@ -407,8 +441,11 @@ final class PassportAPIService: ObservableObject {
 //        return result
 //    }
     
+    /// Fetches parking rights (active parking permits) for a specific operator and zone.
+    /// API endpoint: GET /v4/enforcement/parking-rights?operator_id={id}&zone_id={id}
+    /// Parking rights represent vehicles that have permission to park in a zone.
     func fetchParkingRights(forOperatorId operatorId: String, zoneId: String) async throws -> [ParkingRight] {
-        // Build URL with proper query parameters
+        // Build URL with query parameters using URLComponents for proper encoding
         var components = URLComponents(string: "\(baseURL)/v4/enforcement/parking-rights")!
         components.queryItems = [
             URLQueryItem(name: "operator_id", value: operatorId.lowercased()),
@@ -467,6 +504,10 @@ final class PassportAPIService: ObservableObject {
     
     // MARK: - Parking Session Events API
     
+    /// Publishes a parking session event to the Passport API.
+    /// API endpoint: POST /v3/shared/events
+    /// Events represent lifecycle changes: started, extended, or stopped.
+    /// The API expects events wrapped in a standard format with type, version, and data array.
     func publishParkingSessionEvent<T: Encodable>(
         type: String,
         version: String = "1.0.0",
@@ -475,11 +516,12 @@ final class PassportAPIService: ObservableObject {
         let url = URL(string: "\(baseURL)/v3/shared/events")!
         print("🎯 Publishing parking session event: \(type)")
         
-        // Create the request body
+        // Build event payload matching API schema: { type, version, data: [...] }
         let requestBody: [String: Any] = [
             "type": type,
             "version": version,
             "data": try data.map { item -> [String: Any] in
+                // Convert Encodable struct to dictionary for JSON serialization
                 let jsonData = try JSONEncoder().encode(item)
                 return try JSONSerialization.jsonObject(with: jsonData) as! [String: Any]
             }
@@ -509,10 +551,14 @@ final class PassportAPIService: ObservableObject {
     
     // MARK: - Private Network Methods
     
+    /// Performs an authenticated GET request and decodes the JSON response.
+    /// Automatically adds Bearer token to Authorization header.
+    /// Uses snake_case to camelCase conversion for Swift naming conventions.
     private func performAuthenticatedRequest<T: Decodable>(url: URL, responseType: T.Type) async throws -> T {
         let request = try await createAuthenticatedRequest(url: url)
         let (data, _) = try await performRequest(request)
         
+        // Configure decoder to convert API's snake_case keys to Swift's camelCase
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         
@@ -539,10 +585,14 @@ final class PassportAPIService: ObservableObject {
         }
     }
     
+    /// Creates an authenticated URLRequest with OAuth Bearer token.
+    /// Adds Authorization header with "Bearer {token}" format (OAuth 2.0 standard).
+    /// Also includes client trace ID header for API debugging/tracking.
     private func createAuthenticatedRequest(url: URL, method: String = "GET") async throws -> URLRequest {
         let token = try await tokenManager.validAccessToken()
         var request = URLRequest(url: url)
         request.httpMethod = method
+        // OAuth 2.0 standard: Bearer token in Authorization header
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue(clientTraceId, forHTTPHeaderField: "Passport-Labs-Client-Trace-Id")
         return request
@@ -570,10 +620,12 @@ final class PassportAPIService: ObservableObject {
         // Log response headers for debugging
         print("🌐 Response headers: \(httpResponse.allHeaderFields)")
         
+        // Handle 401 Unauthorized: token may have expired, retry with fresh token
         if httpResponse.statusCode == 401 {
-            // Token expired, invalidate and retry once
+            // Token expired, invalidate cached token and fetch a new one
             await tokenManager.invalidate()
             let newToken = try await tokenManager.validAccessToken()
+            // Retry the request with the new token (automatic retry logic)
             var retryRequest = request
             retryRequest.setValue("Bearer \(newToken)", forHTTPHeaderField: "Authorization")
             let (retryData, retryResponse) = try await session.data(for: retryRequest)

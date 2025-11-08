@@ -8,6 +8,8 @@
 import SwiftUI
 import SwiftData
 
+/// Main view for managing parking sessions (start, extend, stop).
+/// Uses MVVM pattern: delegates business logic to ViewModels, focuses on UI presentation.
 struct ParkingSessionEventView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject var apiService: PassportAPIService

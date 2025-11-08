@@ -9,6 +9,9 @@ import Foundation
 import SwiftData
 import Observation
 
+/// ViewModel managing the list of parking sessions stored locally in SwiftData.
+/// Handles CRUD operations and CloudKit sync coordination (MVVM pattern).
+/// Separates data access logic from the view layer.
 @Observable
 @MainActor
 final class ParkingSessionsListViewModel {
@@ -26,6 +29,8 @@ final class ParkingSessionsListViewModel {
     
     // MARK: - Session Management
     
+    /// Loads all parking sessions from SwiftData, sorted by creation date (newest first).
+    /// SwiftData automatically syncs with CloudKit, so this includes synced data from other devices.
     func loadSessions() {
         do {
             let descriptor = FetchDescriptor<ParkingSession>(
@@ -109,6 +114,9 @@ final class ParkingSessionsListViewModel {
     
     // MARK: - iCloud Sync
     
+    /// Manually triggers CloudKit sync by saving pending changes and reloading data.
+    /// CloudKit sync happens automatically, but this gives users control to force a refresh.
+    /// The delay allows CloudKit time to process changes before reloading.
     func triggerSync() async {
         isSyncing = true
         print("🔄 [SYNC] ======== MANUAL SYNC TRIGGERED ========")
@@ -119,7 +127,7 @@ final class ParkingSessionsListViewModel {
         
         do {
             print("💾 [SYNC] Saving modelContext to push any pending changes...")
-            // Save any pending changes
+            // Save any pending changes to trigger CloudKit upload
             try modelContext.save()
             print("✅ [SYNC] ModelContext saved successfully")
             
@@ -131,7 +139,7 @@ final class ParkingSessionsListViewModel {
                 return
             }
             
-            // Reload sessions to get any synced data
+            // Reload sessions to fetch any data synced from other devices
             loadSessions()
             
             print("✅ [SYNC] Sync completed at \(Date())")

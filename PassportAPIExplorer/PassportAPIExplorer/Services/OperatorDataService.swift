@@ -8,6 +8,9 @@
 import Foundation
 import SwiftData
 
+/// Service class for managing Operator data persistence.
+/// Provides CRUD operations for operators stored in SwiftData/CloudKit.
+/// Separates data access logic from ViewModels (service layer pattern).
 @Observable
 class OperatorDataService {
     private var modelContext: ModelContext
@@ -18,6 +21,8 @@ class OperatorDataService {
     
     // MARK: - CRUD Operations
     
+    /// Fetches all operators from SwiftData, sorted by name.
+    /// Returns empty array on error (graceful degradation).
     func fetchOperators() -> [Operator] {
         let descriptor = FetchDescriptor<Operator>(
             sortBy: [SortDescriptor(\.name)]
@@ -31,6 +36,8 @@ class OperatorDataService {
         }
     }
     
+    /// Creates and saves a new operator to SwiftData.
+    /// Changes automatically sync to CloudKit (no manual sync needed).
     func addOperator(name: String, id: String? = nil, environment: OperatorEnvironment = .production) -> Operator? {
         let newOperator = Operator(name: name, id: id, environment: environment)
         

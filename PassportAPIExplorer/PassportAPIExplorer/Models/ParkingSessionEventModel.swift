@@ -9,6 +9,9 @@ import Foundation
 import SwiftData
 
 // MARK: - Event Type Enum
+
+/// Event types supported by the Passport API parking session events endpoint.
+/// These represent the lifecycle of a parking session: start, extend, stop.
 enum ParkingSessionEventType: String, Codable, CaseIterable {
     case started = "parking_session_started"
     case extended = "parking_session_extended"
@@ -24,6 +27,9 @@ enum ParkingSessionEventType: String, Codable, CaseIterable {
 }
 
 // MARK: - Zone ID Type
+
+/// Zone identifier types: Passport zones (UUIDs) or external zones (third-party IDs).
+/// The API accepts either type, but only one should be provided per event.
 enum ZoneIDType: String, Codable, CaseIterable {
     case passport = "Passport Zone ID"
     case external = "External Zone ID"
@@ -37,6 +43,10 @@ enum ZoneIDType: String, Codable, CaseIterable {
 }
 
 // MARK: - Session ID Generator
+
+/// Generates a unique session ID in the format: apie-YYYY-MM-DD-#####
+/// Session IDs must be unique per parking session and are used to track
+/// the session lifecycle (start → extend → stop) across multiple API calls.
 extension ParkingSession {
     static func generateSessionId() -> String {
         let dateFormatter = DateFormatter()
@@ -51,6 +61,10 @@ extension ParkingSession {
 }
 
 // MARK: - Parking Session (Local Storage)
+
+/// Local SwiftData model representing a parking session.
+/// Stored in CloudKit for cross-device sync. This is the app's local representation;
+/// the API uses events (started/extended/stopped) to track sessions server-side.
 @Model
 class ParkingSession: Identifiable {
     var id: String = UUID().uuidString
@@ -108,13 +122,16 @@ class ParkingSession: Identifiable {
 
 // MARK: - API Event Request Models
 
-// Base protocol for event data
+/// Base protocol for all parking session event data structures.
+/// Ensures all events include a sessionId to link them to a specific session.
 protocol ParkingSessionEventData: Codable {
     var sessionId: String { get }
 }
 
 // MARK: - Shared Models
 
+/// Vehicle information included in parking session events.
+/// Maps to API's vehicle_plate, vehicle_state, vehicle_country fields.
 struct EventVehicle: Codable {
     let vehiclePlate: String
     let vehicleState: String
@@ -127,12 +144,16 @@ struct EventVehicle: Codable {
     }
 }
 
+/// Fee structure for parking session events.
+/// Fees are represented as strings (not numbers) to preserve precision and formatting.
+/// Used for both event fees (this transaction) and total session fees (cumulative).
 struct EventFees: Codable {
     let parkingFee: String
     let convenienceFee: String
     let tax: String
     let currencyCode: String
     
+    /// Maps Swift camelCase properties to API's snake_case JSON keys
     enum CodingKeys: String, CodingKey {
         case parkingFee = "parking_fee"
         case convenienceFee = "convenience_fee"
@@ -165,6 +186,8 @@ struct Payment: Codable {
 
 // MARK: - Started Event Data
 
+/// Data structure for parking_session_started events sent to the API.
+/// This event creates a new parking session. All fields except optional ones are required.
 struct ParkingSessionStartedData: ParkingSessionEventData, Codable {
     let occurredAt: String
     let sessionId: String
@@ -201,6 +224,9 @@ struct ParkingSessionStartedData: ParkingSessionEventData, Codable {
 
 // MARK: - Extended Event Data
 
+/// Data structure for parking_session_extended events sent to the API.
+/// Extends an existing session by updating the end_time and adding new fees.
+/// Includes both event fees (this extension) and total session fees (cumulative).
 struct ParkingSessionExtendedData: ParkingSessionEventData, Codable {
     let occurredAt: String
     let sessionId: String
@@ -239,6 +265,9 @@ struct ParkingSessionExtendedData: ParkingSessionEventData, Codable {
 
 // MARK: - Stopped Event Data
 
+/// Data structure for parking_session_stopped events sent to the API.
+/// Marks a session as complete. Can include final fees (may be negative for refunds).
+/// Includes both event fees (this stop transaction) and total session fees (final total).
 struct ParkingSessionStoppedData: ParkingSessionEventData, Codable {
     let occurredAt: String
     let sessionId: String
@@ -276,6 +305,9 @@ struct ParkingSessionStoppedData: ParkingSessionEventData, Codable {
 }
 
 // MARK: - Helper Extensions
+
+/// Converts Date to ISO8601 string format required by the API.
+/// Includes fractional seconds for precise timestamp representation.
 extension Date {
     func toISO8601String() -> String {
         let formatter = ISO8601DateFormatter()

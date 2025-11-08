@@ -7,11 +7,13 @@
 
 import Foundation
 
+/// Vehicle information structure from the parking rights API.
+/// Represents a vehicle that has an active parking right (permit).
 struct Vehicle: Codable {
     let vehiclePlate: String?
     let vehicleState: String?
     
-    // Legacy computed properties for backward compatibility
+    // Legacy computed properties for backward compatibility with snake_case naming
     var vehicle_plate: String? { return vehiclePlate }
     var vehicle_state: String? { return vehicleState }
     
@@ -19,7 +21,7 @@ struct Vehicle: Codable {
         case vehiclePlate, vehicleState
     }
     
-    // Custom initializer to handle API response safely
+    /// Custom decoder to safely handle optional API fields
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         
@@ -35,18 +37,21 @@ struct Vehicle: Codable {
     }
 }
 
+/// Represents an active parking right (permit) from the enforcement API.
+/// Parking rights show which vehicles have permission to park in a zone.
+/// Times are ISO8601 strings from the API, not Date objects.
 struct ParkingRight: Identifiable, Codable {
     let id: String
     let operatorId: String
     let zoneId: String
     let type: String
-    let startTime: String
-    let endTime: String
+    let startTime: String  // ISO8601 string from API
+    let endTime: String    // ISO8601 string from API
     let vehicle: Vehicle?
     let referenceId: String?
     let spaceNumber: String?
     
-    // Computed properties for backward compatibility
+    // Computed properties for backward compatibility with snake_case naming
     var vehicle_plate: String? {
         return vehicle?.vehicle_plate 
     }
@@ -79,12 +84,15 @@ struct ParkingRight: Identifiable, Codable {
         self.spaceNumber = spaceNumber
     }
     
+    /// Calculates time remaining until the parking right expires.
+    /// Parses ISO8601 endTime string and compares to current date.
     var timeRemainingInSeconds: TimeInterval {
         let isoDateFormatter = ISO8601DateFormatter()
         isoDateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         
+        // Try parsing with fractional seconds first
         guard let formattedEndDate = isoDateFormatter.date(from: endTime) else {
-            // Try without fractional seconds
+            // Fallback: try without fractional seconds
             isoDateFormatter.formatOptions = [.withInternetDateTime]
             guard let formattedEndDate = isoDateFormatter.date(from: endTime) else {
                 return 0

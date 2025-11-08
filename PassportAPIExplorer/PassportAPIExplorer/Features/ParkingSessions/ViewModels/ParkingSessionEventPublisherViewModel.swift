@@ -8,6 +8,9 @@
 import Foundation
 import Observation
 
+/// ViewModel responsible for publishing parking session events to the API.
+/// Handles the business logic for creating started/extended/stopped events
+/// and updating local state after successful API calls (MVVM pattern).
 @Observable
 @MainActor
 final class ParkingSessionEventPublisherViewModel {
@@ -25,6 +28,9 @@ final class ParkingSessionEventPublisherViewModel {
     
     // MARK: - Event Publishing
     
+    /// Publishes a parking_session_started event to the API.
+    /// After successful API call, creates a local ParkingSession record.
+    /// This follows the event-driven API pattern: the API tracks sessions via events.
     func publishStartedEvent(
         sessionId: String? = nil,
         operatorId: String,
@@ -84,7 +90,8 @@ final class ParkingSessionEventPublisherViewModel {
             )
             
             if success {
-                // Save session locally after successful API call with the same session ID
+                // After successful API call, save session to local SwiftData store
+                // This keeps the UI in sync with what was sent to the API
                 listViewModel.createSession(
                     sessionId: finalSessionId,
                     operatorId: operatorId,
@@ -108,6 +115,8 @@ final class ParkingSessionEventPublisherViewModel {
         }
     }
     
+    /// Publishes a parking_session_extended event to extend an existing session.
+    /// Updates the session's end time both in the API and locally.
     func publishExtendedEvent(
         session: ParkingSession,
         newEndTime: Date,
@@ -169,6 +178,8 @@ final class ParkingSessionEventPublisherViewModel {
         }
     }
     
+    /// Publishes a parking_session_stopped event to mark a session as complete.
+    /// Sets the session's isActive flag to false after successful API call.
     func publishStoppedEvent(
         session: ParkingSession,
         endTime: Date,

@@ -8,19 +8,24 @@
 import Foundation
 import SwiftData
 
+/// Environment types for parking operators (production, staging, development).
+/// Used to organize operators by their API environment.
 enum OperatorEnvironment : String, Codable, CaseIterable {
     case production
     case staging
     case development
 }
 
+/// Represents a parking zone returned from the API.
+/// Zones are areas where parking is managed (e.g., "Downtown Zone 1").
+/// This struct maps directly to the API's zone response format.
 struct Zone : Identifiable, Codable, Hashable {
     let id: String
     let name: String
     let number: String
     let operator_id: String
     
-    // Custom initializer to handle API response safely
+    /// Custom decoder with fallback values for optional API fields
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         
@@ -31,12 +36,12 @@ struct Zone : Identifiable, Codable, Hashable {
         operator_id = try container.decodeIfPresent(String.self, forKey: .operator_id) ?? ""
     }
     
-    // Custom coding keys for the fields we need
+    /// Maps JSON keys from API response to Swift properties
     enum CodingKeys: String, CodingKey {
         case id, name, number, operator_id
     }
     
-    // Custom initializer for creating Zone instances manually
+    /// Manual initializer for creating Zone instances programmatically
     init(id: String, name: String, number: String, operator_id: String) {
         self.id = id
         self.name = name
@@ -45,6 +50,9 @@ struct Zone : Identifiable, Codable, Hashable {
     }
 }
 
+/// SwiftData model representing a parking operator.
+/// Operators are organizations that manage parking zones (e.g., city parking authority).
+/// Synced to CloudKit for cross-device access.
 @Model
 class Operator: Identifiable {
     var id: String = ""
@@ -52,6 +60,7 @@ class Operator: Identifiable {
     var environment: OperatorEnvironment?
     var dateCreated: Date = Date()
     
+    /// Creates a new operator. The ID should match the operator's UUID in the Passport API.
     init(name: String, id: String? = nil, environment: OperatorEnvironment = .production) {
         self.id = id ?? UUID().uuidString
         self.name = name

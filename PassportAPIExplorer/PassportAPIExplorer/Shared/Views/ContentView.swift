@@ -8,10 +8,13 @@
 import SwiftUI
 import SwiftData
 
+/// Root content view with tab navigation.
+/// Provides access to PassportAPIService via @EnvironmentObject (dependency injection).
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var selection: String? = nil
     @AppStorage("selectedThemeMode") private var selectedThemeMode: ThemeMode = .auto
+    /// Injected API service from PassportAPIExplorerApp (dependency injection pattern)
     @EnvironmentObject var passportAPIService: PassportAPIService
 
     var body: some View {

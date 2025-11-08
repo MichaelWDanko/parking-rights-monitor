@@ -9,6 +9,9 @@ import Foundation
 import Observation
 import SwiftData
 
+/// ViewModel managing form state for creating/editing parking session events.
+/// Handles form validation, zone loading, and submission logic (MVVM pattern).
+/// Separates UI state from business logic for testability and maintainability.
 @Observable
 @MainActor
 final class ParkingSessionEventFormViewModel {
@@ -65,9 +68,12 @@ final class ParkingSessionEventFormViewModel {
     
     // MARK: - Computed Properties
     
+    /// Validates that all required form fields are filled and end time is after start time.
+    /// Used to enable/disable the submit button in the UI.
     var isStartFormValid: Bool {
         guard selectedOperator != nil else { return false }
         
+        // Zone validation: either external zone ID or Passport zone must be selected
         let hasValidZone = useExternalZoneId ? !externalZoneId.isEmpty : selectedZone != nil
         
         return hasValidZone &&
@@ -127,10 +133,13 @@ final class ParkingSessionEventFormViewModel {
         currencyCode = "USD"
     }
     
+    /// Fetches zones for the selected operator from the API.
+    /// Called when operator selection changes to populate the zone picker.
     func loadZonesForOperator(_ op: Operator) {
         Task {
             isLoadingZones = true
             do {
+                // API call to fetch zones: GET /v3/shared/zones?operator_id={id}
                 availableZones = try await apiService.fetchZones(forOperatorId: op.id)
             } catch {
                 print("Failed to load zones: \(error)")
@@ -160,14 +169,18 @@ final class ParkingSessionEventFormViewModel {
         endTime = startTime.addingTimeInterval(seconds)
     }
     
+    /// Submits the start session form by publishing a parking_session_started event.
+    /// Builds the event payload from form fields and calls the API via the publisher ViewModel.
     func submitStartSession() async throws {
         guard let op = selectedOperator else { return }
         
+        // Determine zone ID type and value based on user's selection
         let operatorId = op.id
         let zoneIdType: ZoneIDType = useExternalZoneId ? .external : .passport
         let zoneId: String = useExternalZoneId ? externalZoneId : (selectedZone?.id ?? "")
         let zoneName: String? = useExternalZoneId ? nil : selectedZone?.name
         
+        // Build fee structure from form inputs
         let fees = EventFees(
             parkingFee: parkingFee,
             convenienceFee: convenienceFee,
@@ -175,6 +188,7 @@ final class ParkingSessionEventFormViewModel {
             currencyCode: currencyCode
         )
         
+        // Delegate to publisher ViewModel to handle API call
         try await eventPublisher.publishStartedEvent(
             sessionId: previewSessionId,
             operatorId: operatorId,

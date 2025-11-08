@@ -8,10 +8,13 @@
 import SwiftUI
 import SwiftData
 
+/// Main app entry point. Initializes SwiftData with CloudKit sync and creates
+/// the shared PassportAPIService instance for dependency injection.
 @main
 struct PassportAPIExplorerApp: App {
     
     let modelContainer: ModelContainer
+    /// Shared API service instance injected into the view hierarchy via @EnvironmentObject
     private let passportAPIService: PassportAPIService
     
     init() {
@@ -19,13 +22,15 @@ struct PassportAPIExplorerApp: App {
             print("🚀 [INIT] Starting ModelContainer initialization...")
             print("📅 [INIT] Device time: \(Date())")
             
-            // Configure SwiftData with CloudKit support for Operator and ParkingSession
+            // Configure SwiftData schema with models that sync to CloudKit
+            // CloudKit sync enables data to sync across user's devices automatically
             let schema = Schema([Operator.self, ParkingSession.self])
             print("📋 [SCHEMA] Registered models: Operator, ParkingSession (both synced)")
             
             let containerIdentifier = "iCloud.com.michaelwdanko.PassportAPIExplorer"
             
-            // CloudKit configuration for Operator and ParkingSession
+            // Configure CloudKit private database for cross-device sync
+            // Private database requires user authentication and is encrypted
             let cloudKitConfiguration = ModelConfiguration(
                 schema: Schema([Operator.self, ParkingSession.self]),
                 cloudKitDatabase: .private(containerIdentifier)
@@ -54,7 +59,8 @@ struct PassportAPIExplorerApp: App {
             }
             fatalError("Could not initialize ModelContainer: \(error)")
         }
-        // Initialize shared PassportAPIService once at the app level
+        // Initialize shared PassportAPIService singleton for dependency injection
+        // This service handles all API communication and OAuth authentication
         let secrets = try! SecretsLoader.load()
         let config = OAuthConfiguration(
             tokenURL: URL(string: "https://api.us.passportinc.com/v3/shared/access-tokens")!,
@@ -69,8 +75,10 @@ struct PassportAPIExplorerApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                // Inject PassportAPIService into the view hierarchy via @EnvironmentObject
                 .environmentObject(passportAPIService)
         }
+        // Provide SwiftData ModelContainer to all views via @Environment(\.modelContext)
         .modelContainer(modelContainer)
     }
 }
