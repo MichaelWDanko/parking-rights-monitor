@@ -369,14 +369,11 @@ struct OperatorSearchSection: View {
                     }
                     .pickerStyle(.segmented)
                     .padding(.horizontal, 20)
-                    .animation(.spring(response: 0.3, dampingFraction: 0.8), value: searchMode)
                     .onChange(of: searchMode) { _, _ in
                         // Clear search fields when switching modes
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            spaceNumber = ""
-                            vehiclePlate = ""
-                            vehicleState = ""
-                        }
+                        spaceNumber = ""
+                        vehiclePlate = ""
+                        vehicleState = ""
                     }
                     
                     // Conditional input fields based on search mode
@@ -389,7 +386,6 @@ struct OperatorSearchSection: View {
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal, 20)
                                 .padding(.vertical, 8)
-                                .transition(.opacity.combined(with: .scale(scale: 0.95)))
                         } else {
                             // Space/Vehicle mode: Three text fields
                             VStack(spacing: 16) {
@@ -430,10 +426,8 @@ struct OperatorSearchSection: View {
                                 .adaptiveGlassmorphismTextField()
                             }
                             .padding(.horizontal, 20)
-                            .transition(.opacity.combined(with: .move(edge: .bottom)))
                         }
                     }
-                    .animation(.spring(response: 0.4, dampingFraction: 0.8), value: searchMode)
                     
                     // Search button
                     if searchMode == .spaceVehicleBased {
@@ -457,24 +451,16 @@ struct OperatorSearchSection: View {
                         .buttonStyle(GlassmorphismButtonStyle(isPrimary: true))
                         .disabled(!canSearch)
                         .opacity(canSearch ? 1.0 : 0.6)
-                        .scaleEffect(canSearch ? 1.0 : 0.98)
-                        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: canSearch)
                         .padding(.horizontal, 20)
                         .padding(.bottom, 4)
-                        .transition(.opacity.combined(with: .scale(scale: 0.95)))
                     }
                 }
                 .padding(.top, 4)
                 .padding(.bottom, 20)
-                .transition(.asymmetric(
-                    insertion: .opacity.combined(with: .move(edge: .bottom)).combined(with: .scale(scale: 0.95)),
-                    removal: .opacity.combined(with: .move(edge: .bottom)).combined(with: .scale(scale: 0.95))
-                ))
             }
         }
         .adaptiveFloatingSearchSection(isExpanded: isExpanded)
         .padding(.horizontal, 16)
         .padding(.bottom, 16)
-        .animation(.spring(response: 0.4, dampingFraction: 0.75), value: isExpanded)
     }
 }
