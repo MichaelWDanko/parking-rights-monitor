@@ -865,7 +865,7 @@ private struct ParkingSessionEventInnerView: View {
                     } else {
                         Picker("Select Zone", selection: $formViewModel.selectedZone) {
                             Text("Choose zone...").tag(nil as Zone?)
-                            ForEach(formViewModel.availableZones) { zone in
+                            ForEach(formViewModel.sortedZones) { zone in
                                 Text("\(zone.name) (\(zone.number))").tag(zone as Zone?)
                             }
                         }
