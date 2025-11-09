@@ -27,6 +27,7 @@ final class ParkingSessionEventFormViewModel {
     var selectedZone: Zone?
     var externalZoneId = ""
     var isLoadingZones = false
+    var sortOption: SortOption = .numberAscending
     
     // Vehicle Information
     var vehiclePlate = ""
@@ -68,6 +69,11 @@ final class ParkingSessionEventFormViewModel {
     
     // MARK: - Computed Properties
     
+    /// Returns zones sorted according to the current sortOption.
+    var sortedZones: [Zone] {
+        sortZones(availableZones)
+    }
+    
     /// Validates that all required form fields are filled and end time is after start time.
     /// Used to enable/disable the submit button in the UI.
     var isStartFormValid: Bool {
@@ -84,6 +90,21 @@ final class ParkingSessionEventFormViewModel {
         !tax.isEmpty &&
         !currencyCode.isEmpty &&
         endTime > startTime
+    }
+    
+    // MARK: - Private Helpers
+    
+    private func sortZones(_ zones: [Zone]) -> [Zone] {
+        switch sortOption {
+        case .nameAscending:
+            return zones.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        case .nameDescending:
+            return zones.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedDescending }
+        case .numberAscending:
+            return zones.sorted { $0.number.localizedCaseInsensitiveCompare($1.number) == .orderedAscending }
+        case .numberDescending:
+            return zones.sorted { $0.number.localizedCaseInsensitiveCompare($1.number) == .orderedDescending }
+        }
     }
     
     // MARK: - Actions

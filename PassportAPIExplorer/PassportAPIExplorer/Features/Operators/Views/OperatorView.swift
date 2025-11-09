@@ -15,149 +15,189 @@ struct OperatorView: View {
     @AppStorage("selectedThemeMode") private var selectedThemeMode: ThemeMode = .auto
     @Environment(\.colorScheme) var colorScheme
     @State private var viewModel: OperatorViewModel?
+    @State private var searchMode: SearchMode = .zoneBased
+    @State private var isSearchExpanded: Bool = false
+    @State private var spaceNumber: String = ""
+    @State private var vehiclePlate: String = ""
+    @State private var vehicleState: String = ""
     
     var body: some View {
         VStack(spacing: 0) {
-            // Section header
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Choose a zone")
-                    .font(.title3)
-                    .fontWeight(.semibold)
+            // Header
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Parking Rights")
+                    .font(.title2)
+                    .fontWeight(.bold)
                     .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.top, 16)
-                
-                Text("Select a zone to view parking rights")
-                    .font(.subheadline)
-                    .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.bottom, 16)
-                }
-                .padding(.horizontal, 16)
-                .adaptiveGlassmorphismCard()
-                .padding(.horizontal, 16)
-                .padding(.top, 8)
-            
-            // Search bar for filtering zones
-            HStack {
-                Image(systemName: "magnifyingglass")
-                    .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                
-                TextField("Search by name or number...", text: Binding(
-                    get: { viewModel?.searchText ?? "" },
-                    set: { viewModel?.searchText = $0 }
-                ))
-                .textFieldStyle(PlainTextFieldStyle())
-                .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
-                
-                if !(viewModel?.searchText.isEmpty ?? true) {
-                    Button(action: {
-                        viewModel?.searchText = ""
-                    }) {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                    }
-                }
             }
-            .adaptiveGlassmorphismTextField()
             .padding(.horizontal, 16)
             .padding(.top, 16)
+            .padding(.bottom, 12)
             
-            if viewModel?.isLoadingZones == true {
-                ProgressView("Loading zones...")
+            // Subheader: Search method
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Search method")
+                    .font(.headline)
+                    .fontWeight(.medium)
                     .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if let error = viewModel?.zonesError {
-                VStack(spacing: 16) {
-                    Image(systemName: "exclamationmark.triangle")
-                        .font(.system(size: 50))
-                        .foregroundColor(.cyanAccent)
-                    Text("Failed to load zones")
-                        .font(.headline)
-                        .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
-                    Text(error)
-                        .font(.subheadline)
-                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                        .multilineTextAlignment(.center)
-                    Button("Retry") {
-                        viewModel?.loadZones()
-                    }
-                    .buttonStyle(GlassmorphismButtonStyle(isPrimary: true))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 8)
+            
+            // Search mode selector - 2-tab selector
+            Picker("Search Mode", selection: $searchMode) {
+                ForEach(SearchMode.allCases, id: \.self) { mode in
+                    Text(mode.rawValue).tag(mode)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .adaptiveGlassmorphismCard()
-                .padding()
-            } else if (viewModel?.filteredZones.isEmpty ?? true) && !(viewModel?.searchText.isEmpty ?? true) {
-                VStack(spacing: 16) {
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: 50))
-                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                    Text("No zones found")
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal, 16)
+            .padding(.bottom, 12)
+            .onChange(of: searchMode) { _, _ in
+                // Clear search fields when switching modes
+                spaceNumber = ""
+                vehiclePlate = ""
+                vehicleState = ""
+            }
+            
+            if searchMode == .zoneBased {
+                // Subheader: Select a zone
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Select a zone")
                         .font(.headline)
+                        .fontWeight(.medium)
                         .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
-                    Text("Try adjusting your search terms")
-                        .font(.subheadline)
-                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .adaptiveGlassmorphismCard()
-                .padding()
-            } else if (viewModel?.zones.isEmpty ?? true) {
-                VStack(spacing: 20) {
-                    Image(systemName: "location.slash")
-                        .font(.system(size: 50))
-                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                    
-                    VStack(spacing: 8) {
-                        Text("No zones available")
+                .padding(.horizontal, 16)
+                .padding(.bottom, 12)
+                
+                if viewModel?.isLoadingZones == true {
+                    ProgressView("Loading zones...")
+                        .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if let error = viewModel?.zonesError {
+                    VStack(spacing: 16) {
+                        Image(systemName: "exclamationmark.triangle")
+                            .font(.system(size: 50))
+                            .foregroundColor(.cyanAccent)
+                        Text("Failed to load zones")
                             .font(.headline)
                             .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
-                        Text("This operator doesn't have any zones configured")
+                        Text(error)
                             .font(.subheadline)
                             .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                             .multilineTextAlignment(.center)
-                    }
-                    
-                    HStack(spacing: 12) {
-                        Button(action: {
+                        Button("Retry") {
                             viewModel?.loadZones()
-                        }) {
-                            HStack(spacing: 6) {
-                                Image(systemName: "arrow.clockwise")
-                                    .font(.caption)
-                                Text("Refresh")
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
-                            }
                         }
                         .buttonStyle(GlassmorphismButtonStyle(isPrimary: true))
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .adaptiveGlassmorphismCard()
+                    .padding()
+                } else if (viewModel?.filteredZones.isEmpty ?? true) && !(viewModel?.searchText.isEmpty ?? true) {
+                    VStack(spacing: 16) {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 50))
+                            .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
+                        Text("No zones found")
+                            .font(.headline)
+                            .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
+                        Text("Try adjusting your search terms")
+                            .font(.subheadline)
+                            .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .adaptiveGlassmorphismCard()
+                    .padding()
+                } else if (viewModel?.zones.isEmpty ?? true) {
+                    VStack(spacing: 20) {
+                        Image(systemName: "location.slash")
+                            .font(.system(size: 50))
+                            .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                         
-                        Button(action: {
-                            viewModel?.loadZones()
-                        }) {
-                            Image(systemName: "magnifyingglass")
-                                .font(.title2)
+                        VStack(spacing: 8) {
+                            Text("No zones available")
+                                .font(.headline)
+                                .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
+                            Text("This operator doesn't have any zones configured")
+                                .font(.subheadline)
+                                .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
+                                .multilineTextAlignment(.center)
                         }
-                        .buttonStyle(GlassmorphismButtonStyle(isPrimary: false))
+                        
+                        HStack(spacing: 12) {
+                            Button(action: {
+                                viewModel?.loadZones()
+                            }) {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "arrow.clockwise")
+                                        .font(.caption)
+                                    Text("Refresh")
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                }
+                            }
+                            .buttonStyle(GlassmorphismButtonStyle(isPrimary: true))
+                            
+                            Button(action: {
+                                viewModel?.loadZones()
+                            }) {
+                                Image(systemName: "magnifyingglass")
+                                    .font(.title2)
+                            }
+                            .buttonStyle(GlassmorphismButtonStyle(isPrimary: false))
+                        }
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .adaptiveGlassmorphismCard()
+                    .padding()
+                } else {
+                    ScrollView {
+                        LazyVStack(spacing: 8) {
+                            ForEach(viewModel?.filteredZones ?? []) { zone in
+                                ZoneCardView(zone: zone, operatorId: selectedOperator.id, colorScheme: colorScheme)
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.top, 16)
+                        .padding(.bottom, 100) // Padding for floating filter
+                    }
+                    .refreshable {
+                        await refreshZones()
                     }
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .adaptiveGlassmorphismCard()
-                .padding()
             } else {
-                ScrollView {
-                    LazyVStack(spacing: 8) {
-                        ForEach(viewModel?.filteredZones ?? []) { zone in
-                            ZoneCardView(zone: zone, operatorId: selectedOperator.id, colorScheme: colorScheme)
-                        }
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 16)
-                    .padding(.bottom, 20)
-                }
-                .refreshable {
-                    await refreshZones()
-                }
+                // Space/Vehicle mode: Show empty space (form is in bottom floating section)
+                Spacer()
+            }
+        }
+        .safeAreaInset(edge: .bottom) {
+            // Floating filter/search section at bottom
+            if searchMode == .zoneBased {
+                // Floating zone filter (always visible)
+                FloatingZoneFilterSection(
+                    searchText: Binding(
+                        get: { viewModel?.searchText ?? "" },
+                        set: { viewModel?.searchText = $0 }
+                    ),
+                    colorScheme: colorScheme
+                )
+            } else {
+                // Space/Vehicle search section (always visible, no expand/collapse)
+                OperatorSearchSection(
+                    searchMode: $searchMode,
+                    isExpanded: $isSearchExpanded,
+                    spaceNumber: $spaceNumber,
+                    vehiclePlate: $vehiclePlate,
+                    vehicleState: $vehicleState,
+                    operatorId: selectedOperator.id,
+                    colorScheme: colorScheme,
+                    passportAPIService: passportAPIService
+                )
             }
         }
         .navigationTitle(selectedOperator.name)
@@ -256,9 +296,165 @@ struct ZoneCardView: View {
     }
 }
 
+// Floating Zone Filter Section Component (always visible for zone-based filtering)
+// Styled like native iOS floating search bar (e.g., Apple Music)
+struct FloatingZoneFilterSection: View {
+    @Binding var searchText: String
+    let colorScheme: ColorScheme
+    
+    var body: some View {
+        HStack(spacing: 8) {
+            // Main search bar - wide, rounded rectangle
+            HStack(spacing: 10) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
+                
+                TextField("Filter zones", text: $searchText)
+                    .textFieldStyle(PlainTextFieldStyle())
+                    .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
+                    .font(.system(size: 16))
+                
+                if !searchText.isEmpty {
+                    Button(action: {
+                        searchText = ""
+                    }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 14))
+                            .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
+                    }
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity)
+            .background {
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(.regularMaterial)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 14)
+                            .strokeBorder(
+                                LinearGradient(
+                                    colors: colorScheme == .dark ? [
+                                        Color.white.opacity(0.2),
+                                        Color.white.opacity(0.05)
+                                    ] : [
+                                        Color.black.opacity(0.1),
+                                        Color.black.opacity(0.05)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 0.5
+                            )
+                    }
+            }
+            .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: 4)
+            .shadow(color: Color.black.opacity(0.1), radius: 20, x: 0, y: 8)
+        }
+        .padding(.horizontal, 16)
+        .padding(.bottom, 8)
+    }
+}
+
 #Preview {
     let mockAPIService = PreviewEnvironment.makePreviewService()
     
     OperatorView(selectedOperator: zdanko)
         .environmentObject(mockAPIService)
+}
+
+// Operator Search Section Component
+struct OperatorSearchSection: View {
+    @Binding var searchMode: SearchMode
+    @Binding var isExpanded: Bool
+    @Binding var spaceNumber: String
+    @Binding var vehiclePlate: String
+    @Binding var vehicleState: String
+    let operatorId: String
+    let colorScheme: ColorScheme
+    let passportAPIService: PassportAPIService
+    
+    private var canSearch: Bool {
+        switch searchMode {
+        case .zoneBased:
+            return true // Zone selection is always available
+        case .spaceVehicleBased:
+            return !spaceNumber.trimmingCharacters(in: .whitespaces).isEmpty ||
+                   !vehiclePlate.trimmingCharacters(in: .whitespaces).isEmpty ||
+                   !vehicleState.trimmingCharacters(in: .whitespaces).isEmpty
+        }
+    }
+    
+    var body: some View {
+        VStack(spacing: 20) {
+            // Space/Vehicle mode: Three text fields - always visible
+            VStack(spacing: 16) {
+                HStack(spacing: 12) {
+                    Image(systemName: "car")
+                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
+                        .frame(width: 24)
+                    
+                    TextField("Vehicle Plate", text: $vehiclePlate)
+                        .textFieldStyle(PlainTextFieldStyle())
+                        .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
+                        .autocapitalization(.allCharacters)
+                }
+                .adaptiveGlassmorphismTextField()
+                
+                HStack(spacing: 12) {
+                    Image(systemName: "map")
+                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
+                        .frame(width: 24)
+                    
+                    TextField("Vehicle State (ISO 3166-2)", text: $vehicleState)
+                        .textFieldStyle(PlainTextFieldStyle())
+                        .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
+                        .autocapitalization(.allCharacters)
+                }
+                .adaptiveGlassmorphismTextField()
+                
+                HStack(spacing: 12) {
+                    Image(systemName: "number")
+                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
+                        .frame(width: 24)
+                    
+                    TextField("Space Number", text: $spaceNumber)
+                        .textFieldStyle(PlainTextFieldStyle())
+                        .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
+                        .autocapitalization(.none)
+                }
+                .adaptiveGlassmorphismTextField()
+            }
+            .padding(.horizontal, 20)
+            
+            // Search button
+            NavigationLink(
+                destination: ParkingRightListView(
+                    zone: nil,
+                    operatorId: operatorId,
+                    initialSearchMode: .spaceVehicleBased,
+                    initialSpaceNumber: spaceNumber,
+                    initialVehiclePlate: vehiclePlate,
+                    initialVehicleState: vehicleState
+                )
+            ) {
+                HStack(spacing: 8) {
+                    Image(systemName: "magnifyingglass")
+                    Text("Search")
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+            }
+            .buttonStyle(GlassmorphismButtonStyle(isPrimary: true))
+            .disabled(!canSearch)
+            .opacity(canSearch ? 1.0 : 0.6)
+            .padding(.horizontal, 20)
+        }
+        .padding(.top, 20)
+        .padding(.bottom, 20)
+        .adaptiveFloatingSearchSection(isExpanded: true)
+        .padding(.horizontal, 16)
+        .padding(.bottom, 16)
+    }
 }

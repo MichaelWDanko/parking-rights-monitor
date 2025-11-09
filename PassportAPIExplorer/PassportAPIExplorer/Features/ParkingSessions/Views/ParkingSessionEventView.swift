@@ -51,11 +51,14 @@ private struct ParkingSessionEventInnerView: View {
     
     var body: some View {
         Group {
-            if listViewModel.activeSessions.isEmpty {
-                // No active sessions: Show landing page
+            let completedSessions = listViewModel.sessions.filter { !$0.isActive }
+            let hasDisplayableSessions = !listViewModel.activeSessions.isEmpty || !completedSessions.isEmpty
+            
+            if !hasDisplayableSessions {
+                // No displayable sessions: Show landing page with pulsing car icon
                 landingPageView
             } else {
-                // Has active sessions: Show sessions list with start button
+                // Has sessions (active or completed): Show sessions list
                 sessionsListView
             }
         }
@@ -116,15 +119,21 @@ private struct ParkingSessionEventInnerView: View {
                 Spacer()
                     .frame(height: 40)
                 
-                // Icon
+                // Icon with pulsing gradient
                 VStack(spacing: 16) {
                     Image(systemName: "car.fill")
                         .font(.system(size: 64))
-                        .foregroundColor(Color.adaptiveCyanAccent(colorScheme == .dark))
-                        .symbolEffect(.pulse)
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [Color.cyanAccent, Color.cyanAccentLight],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .symbolEffect(.pulse, options: .repeating)
                     
                     VStack(spacing: 8) {
-                        Text("No Active Parking Sessions")
+                        Text("No Parking Sessions")
                             .font(.title2)
                             .fontWeight(.bold)
                             .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
@@ -238,58 +247,31 @@ private struct ParkingSessionEventInnerView: View {
     private var sessionsListView: some View {
         ScrollView {
             VStack(spacing: 16) {
-                // Start New Session Card Button
-                Button(action: {
-                    showingStartForm = true
-                }) {
-                    HStack {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.title2)
-                            .foregroundColor(Color.adaptiveCyanAccent(colorScheme == .dark))
-                        
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Start New Session")
-                                .font(.headline)
-                                .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
-                            Text("Create a new parking session")
-                                .font(.caption)
-                                .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                        }
-                        
-                        Spacer()
-                        
-                        Image(systemName: "chevron.right")
-                            .font(.caption)
-                            .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 16)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .adaptiveGlassmorphismListRow()
-                
                 // Sessions Section
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Active Sessions")
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                        .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
-                        .padding(.horizontal, 16)
+                    let completedSessions = listViewModel.sessions.filter { !$0.isActive }
                     
-                    ForEach(listViewModel.activeSessions) { session in
-                        sessionCard(session)
+                    if !listViewModel.activeSessions.isEmpty {
+                        Text("Active Sessions")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                            .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
+                            .padding(.horizontal, 16)
+                        
+                        ForEach(listViewModel.activeSessions) { session in
+                            sessionCard(session)
+                        }
                     }
                     
-                    if !listViewModel.sessions.filter({ !$0.isActive }).isEmpty {
+                    if !completedSessions.isEmpty {
                         Text("Completed Sessions")
                             .font(.title2)
                             .fontWeight(.semibold)
                             .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
                             .padding(.horizontal, 16)
-                            .padding(.top, 8)
+                            .padding(.top, listViewModel.activeSessions.isEmpty ? 0 : 8)
                         
-                        ForEach(listViewModel.sessions.filter { !$0.isActive }) { session in
+                        ForEach(completedSessions) { session in
                             sessionCard(session)
                         }
                     }
@@ -297,10 +279,23 @@ private struct ParkingSessionEventInnerView: View {
             }
             .padding(.horizontal, 16)
             .padding(.top, 16)
-            .padding(.bottom, 20)
+            .padding(.bottom, 100) // Padding for floating button
         }
         .refreshable {
             await listViewModel.triggerSync()
+        }
+        .safeAreaInset(edge: .bottom) {
+            // Floating Start New Session button - always visible
+            Button(action: {
+                showingStartForm = true
+            }) {
+                Label("Start New Session", systemImage: "plus.circle.fill")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(GlassmorphismButtonStyle(isPrimary: true))
+            .padding(.horizontal, 32)
+            .padding(.bottom, 20)
         }
         .sheet(item: $sessionDetailModal) { session in
             NavigationStack {
@@ -865,7 +860,7 @@ private struct ParkingSessionEventInnerView: View {
                     } else {
                         Picker("Select Zone", selection: $formViewModel.selectedZone) {
                             Text("Choose zone...").tag(nil as Zone?)
-                            ForEach(formViewModel.availableZones) { zone in
+                            ForEach(formViewModel.sortedZones) { zone in
                                 Text("\(zone.name) (\(zone.number))").tag(zone as Zone?)
                             }
                         }
