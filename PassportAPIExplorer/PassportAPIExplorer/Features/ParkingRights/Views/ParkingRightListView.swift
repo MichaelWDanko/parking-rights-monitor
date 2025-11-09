@@ -22,7 +22,6 @@ struct ParkingRightListView: View {
     let initialVehicleState: String?
     
     @State private var viewModel: ParkingRightListViewModel?
-    @State private var isSearchExpanded: Bool = false
     
     init(
         zone: Zone?,
@@ -107,12 +106,13 @@ struct ParkingRightListView: View {
                     }
                 }
                 .safeAreaInset(edge: .bottom) {
-                    // Floating search section at bottom
-                    FloatingSearchSection(
-                        viewModel: bindableViewModel,
-                        isExpanded: $isSearchExpanded,
-                        colorScheme: colorScheme
-                    )
+                    // Floating filter section at bottom - always visible for zone-based filtering
+                    if bindableViewModel.searchMode == .zoneBased {
+                        FloatingFilterSection(
+                            viewModel: bindableViewModel,
+                            colorScheme: colorScheme
+                        )
+                    }
                 }
             } else {
                 ProgressView("Initializing...")
@@ -153,128 +153,64 @@ struct ParkingRightListView: View {
     } // End of `body`
 } // End of ParkingRightListView
 
-// Floating Search Section Component (for zone-based filtering only)
-struct FloatingSearchSection: View {
+// Floating Filter Section Component (always visible for zone-based filtering)
+// Styled like native iOS floating search bar (e.g., Apple Music)
+struct FloatingFilterSection: View {
     @Bindable var viewModel: ParkingRightListViewModel
-    @Binding var isExpanded: Bool
     let colorScheme: ColorScheme
     
     var body: some View {
-        VStack(spacing: 0) {
-            // Collapsed/Expanded header
-            Button(action: {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                    isExpanded.toggle()
-                }
-            }) {
-                HStack {
-                    Text(viewModel.searchMode == .zoneBased ? "Filter Options" : "Search Options")
-                        .font(.headline)
-                        .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
-                    
-                    Spacer()
-                    
-                    Image(systemName: isExpanded ? "chevron.down" : "chevron.up")
-                        .font(.caption)
-                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-            }
-            
-            if isExpanded {
-                VStack(spacing: 16) {
-                    if viewModel.searchMode == .zoneBased {
-                        // Zone-based: Local filter text field
-                        HStack {
-                            Image(systemName: "magnifyingglass")
-                                .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                            
-                            TextField("Filter parking rights...", text: $viewModel.searchText)
-                                .textFieldStyle(PlainTextFieldStyle())
-                                .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
-                            
-                            if !viewModel.searchText.isEmpty {
-                                Button(action: {
-                                    viewModel.searchText = ""
-                                }) {
-                                    Image(systemName: "xmark.circle.fill")
-                                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                                }
-                            }
-                        }
-                        .adaptiveGlassmorphismTextField()
-                        .padding(.horizontal, 16)
-                    } else {
-                        // Space/Vehicle mode: Show search fields and allow re-searching
-                        VStack(spacing: 12) {
-                            HStack {
-                                Image(systemName: "number")
-                                    .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                                    .frame(width: 20)
-                                
-                                TextField("Space Number", text: $viewModel.spaceNumber)
-                                    .textFieldStyle(PlainTextFieldStyle())
-                                    .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
-                                    .autocapitalization(.none)
-                            }
-                            .adaptiveGlassmorphismTextField()
-                            
-                            HStack {
-                                Image(systemName: "car")
-                                    .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                                    .frame(width: 20)
-                                
-                                TextField("Vehicle Plate", text: $viewModel.vehiclePlate)
-                                    .textFieldStyle(PlainTextFieldStyle())
-                                    .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
-                                    .autocapitalization(.allCharacters)
-                            }
-                            .adaptiveGlassmorphismTextField()
-                            
-                            HStack {
-                                Image(systemName: "map")
-                                    .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                                    .frame(width: 20)
-                                
-                                TextField("Vehicle State (ISO 3166-2)", text: $viewModel.vehicleState)
-                                    .textFieldStyle(PlainTextFieldStyle())
-                                    .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
-                                    .autocapitalization(.allCharacters)
-                            }
-                            .adaptiveGlassmorphismTextField()
-                        }
-                        .padding(.horizontal, 16)
-                        
-                        // Search button for space/vehicle mode
-                        Button(action: {
-                            viewModel.loadParkingRights()
-                        }) {
-                            HStack {
-                                Image(systemName: "magnifyingglass")
-                                Text("Search")
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                        }
-                        .buttonStyle(GlassmorphismButtonStyle(isPrimary: true))
-                        .disabled(!viewModel.canSearch)
-                        .opacity(viewModel.canSearch ? 1.0 : 0.6)
-                        .padding(.horizontal, 16)
-                    }
-                    
-                    if viewModel.searchMode == .zoneBased {
-                        // No button needed for zone-based - filtering happens automatically
+        HStack(spacing: 8) {
+            // Main search bar - wide, rounded rectangle
+            HStack(spacing: 10) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
+                
+                TextField("Filter parking rights...", text: $viewModel.searchText)
+                    .textFieldStyle(PlainTextFieldStyle())
+                    .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
+                    .font(.system(size: 16))
+                
+                if !viewModel.searchText.isEmpty {
+                    Button(action: {
+                        viewModel.searchText = ""
+                    }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 14))
+                            .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                     }
                 }
-                .padding(.bottom, 16)
-                .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity)
+            .background {
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(.regularMaterial)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 14)
+                            .strokeBorder(
+                                LinearGradient(
+                                    colors: colorScheme == .dark ? [
+                                        Color.white.opacity(0.2),
+                                        Color.white.opacity(0.05)
+                                    ] : [
+                                        Color.black.opacity(0.1),
+                                        Color.black.opacity(0.05)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 0.5
+                            )
+                    }
+            }
+            .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: 4)
+            .shadow(color: Color.black.opacity(0.1), radius: 20, x: 0, y: 8)
         }
-        .adaptiveGlassmorphismCard()
         .padding(.horizontal, 16)
-        .padding(.bottom, 16)
-        .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: -5)
+        .padding(.bottom, 8)
     }
 }
 
