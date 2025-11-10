@@ -10,6 +10,7 @@ import SwiftUI
 struct OperatorZoneView: View {
     var selectedOperator: Operator
     var selectedZone: Zone?
+    var drawerViewModel: OperatorDrawerViewModel?
     
     @EnvironmentObject var passportAPIService: PassportAPIService
     @AppStorage("selectedThemeMode") private var selectedThemeMode: ThemeMode = .auto
@@ -20,7 +21,6 @@ struct OperatorZoneView: View {
     @State private var spaceNumber: String = ""
     @State private var vehiclePlate: String = ""
     @State private var vehicleState: String = ""
-    @EnvironmentObject var drawerViewModel: OperatorDrawerViewModel
     
     var body: some View {
         VStack(spacing: 0) {
@@ -97,9 +97,7 @@ struct OperatorZoneView: View {
                         actionTitle: "Refresh",
                         action: {
                             viewModel?.loadZones()
-                        },
-                        secondaryActionTitle: "Search",
-                        secondaryAction: { viewModel?.loadZones() }
+                        }
                     )
                 } else {
                     ScrollView {
@@ -153,7 +151,7 @@ struct OperatorZoneView: View {
         .adaptiveGlassmorphismBackground()
         .toolbar {
             // Only show hamburger menu on iPhone (drawer is only on iPhone)
-            if UIDevice.current.userInterfaceIdiom == .phone {
+            if UIDevice.current.userInterfaceIdiom == .phone, let drawerViewModel = drawerViewModel {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button(action: {
                         drawerViewModel.openDrawer()
@@ -318,7 +316,7 @@ struct FloatingZoneFilterSection: View {
 #Preview {
     let mockAPIService = PreviewEnvironment.makePreviewService()
     
-    OperatorZoneView(selectedOperator: zdanko)
+    OperatorZoneView(selectedOperator: zdanko, drawerViewModel: nil)
         .environmentObject(mockAPIService)
 }
 

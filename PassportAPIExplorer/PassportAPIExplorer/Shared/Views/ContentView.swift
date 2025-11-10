@@ -24,31 +24,17 @@ struct ContentView: View {
         TabView {
             Group {
                 if UIDevice.current.userInterfaceIdiom == .phone {
-                    // iPhone: Custom Drawer
-                    OperatorDrawer(viewModel: drawerViewModel) {
-                        NavigationStack {
-                            if let selectedOperator = drawerViewModel.selectedOperator {
-                                OperatorZoneView(selectedOperator: selectedOperator)
-                            } else {
-                                // Empty view that auto-opens drawer
-                                Color.clear
-                                    .adaptiveGlassmorphismBackground()
-                                    .onAppear {
-                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                                            drawerViewModel.openDrawer()
-                                        }
-                                    }
-                            }
-                        }
+                    // iPhone: Unified operator and zone view
+                    NavigationStack {
+                        OperatorAndZoneView()
                     }
-                    .environmentObject(drawerViewModel)
                 } else {
                     // iPad/Mac: NavigationSplitView
                     NavigationSplitView {
                         OperatorSelectionView()
                     } detail: {
                         if let selectedOperator = drawerViewModel.selectedOperator {
-                            OperatorZoneView(selectedOperator: selectedOperator)
+                            OperatorZoneView(selectedOperator: selectedOperator, drawerViewModel: nil)
                         } else {
                             VStack(spacing: 20) {
                                 Image(systemName: "building.2")

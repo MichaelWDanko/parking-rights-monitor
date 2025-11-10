@@ -17,7 +17,7 @@ struct OperatorDrawer<Content: View>: View {
     @State private var edgePanTracking: CGFloat = 0
     
     @State private var isInteracting: Bool = false
-    @State private var interactiveOffset: CGFloat = 0 // 0 = open, -drawerWidth = closed
+    @State private var interactiveOffset: CGFloat = 0 // Used during gestures only
     
     @State private var isDrawerDragging: Bool = false
     @State private var drawerDragTracking: CGFloat = 0
@@ -56,6 +56,7 @@ struct OperatorDrawer<Content: View>: View {
             // Drawer panel - always rendered but positioned offscreen when closed
             drawerPanel
                 .offset(x: drawerOffset)
+                .animation(.spring(response: 0.3, dampingFraction: 0.8), value: viewModel.isDrawerOpen)
                 .contentShape(Rectangle())
                 .highPriorityGesture(drawerDragGesture)
             
@@ -65,9 +66,18 @@ struct OperatorDrawer<Content: View>: View {
                     .frame(width: edgePanWidth)
                     .contentShape(Rectangle())
                     .gesture(edgePanGesture)
-                    .ignoresSafeArea()
+                    .ignoresSafeArea(edges: .bottom)
             }
         }
+        .overlay(
+            Text(viewModel.isDrawerOpen ? "OPEN" : "CLOSED")
+                .font(.caption2)
+                .padding(6)
+                .background(Color.yellow.opacity(0.85))
+                .cornerRadius(6)
+                .padding(),
+            alignment: .bottomTrailing
+        )
     }
     
     // MARK: - Drawer Panel
@@ -150,18 +160,11 @@ struct OperatorDrawer<Content: View>: View {
     }
     
     private var drawerOffset: CGFloat {
-        // While interacting (edge pan or drawer drag), use the interactive offset in drawer coordinates
+        // When actively dragging, use interactive offset
         if isInteracting {
             return interactiveOffset
         }
-
-        // While actively panning from the edge (legacy support), use tracking
-        if isEdgePanning {
-            let clamped = min(max(edgePanTracking, 0), drawerWidth)
-            return -drawerWidth + clamped
-        }
-
-        // Otherwise, snap to the state-driven position
+        // Otherwise, use the ViewModel state
         return viewModel.isDrawerOpen ? 0 : -drawerWidth
     }
     

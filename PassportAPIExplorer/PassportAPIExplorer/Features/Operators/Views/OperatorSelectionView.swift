@@ -24,19 +24,6 @@ struct OperatorSelectionView: View {
         .navigationTitle("Operators")
         .adaptiveGlassmorphismNavigation()
         .adaptiveGlassmorphismBackground()
-        .toolbar {
-            // Only show hamburger on iPhone (drawer is only on iPhone)
-            if UIDevice.current.userInterfaceIdiom == .phone {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button(action: {
-                        drawerViewModel.openDrawer()
-                    }) {
-                        Image(systemName: "line.3.horizontal")
-                            .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
-                    }
-                }
-            }
-        }
     }
 }
 
