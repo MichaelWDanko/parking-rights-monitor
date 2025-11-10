@@ -12,7 +12,15 @@ import SwiftData
 struct OperatorDrawer<Content: View>: View {
     @ObservedObject var viewModel: OperatorDrawerViewModel
     @Environment(\.colorScheme) var colorScheme
-    @GestureState private var dragOffset: CGFloat = 0
+    
+    @State private var isEdgePanning: Bool = false
+    @State private var edgePanTracking: CGFloat = 0
+    
+    @State private var isInteracting: Bool = false
+    @State private var interactiveOffset: CGFloat = 0 // 0 = open, -drawerWidth = closed
+    
+    @State private var isDrawerDragging: Bool = false
+    @State private var drawerDragTracking: CGFloat = 0
     
     let content: Content
     let drawerWidth: CGFloat = 280
@@ -27,12 +35,12 @@ struct OperatorDrawer<Content: View>: View {
         ZStack(alignment: .leading) {
             // Main content
             content
-                .disabled(viewModel.isDrawerOpen)
+                .disabled(viewModel.isDrawerOpen || isEdgePanning || isInteracting)
             
             // Dimming overlay
-            if viewModel.isDrawerOpen {
+            if viewModel.isDrawerOpen || isEdgePanning || isInteracting {
                 Color.black
-                    .opacity(0.3)
+                    .opacity(dimmingOpacity)
                     .ignoresSafeArea()
                     .onTapGesture {
                         // Only allow closing if an operator is selected
@@ -40,16 +48,14 @@ struct OperatorDrawer<Content: View>: View {
                             viewModel.closeDrawer()
                         }
                     }
-                    .transition(.opacity)
+                    .animation(.easeOut(duration: 0.2), value: dimmingOpacity)
             }
             
-            // Drawer panel - only render when open
-            if viewModel.isDrawerOpen {
-                drawerPanel
-                    .offset(x: dragOffset)
-                    .gesture(drawerDragGesture)
-                    .transition(.move(edge: .leading))
-            }
+            // Drawer panel - always rendered but positioned offscreen when closed
+            drawerPanel
+                .offset(x: drawerOffset)
+                .contentShape(Rectangle())
+                .highPriorityGesture(drawerDragGesture)
             
             // Edge pan gesture area (invisible)
             if !viewModel.isDrawerOpen {
@@ -136,41 +142,120 @@ struct OperatorDrawer<Content: View>: View {
         return viewModel.selectedOperator != nil
     }
     
+    private var drawerOffset: CGFloat {
+        // While interacting (edge pan or drawer drag), use the interactive offset in drawer coordinates
+        if isInteracting {
+            return interactiveOffset
+        }
+
+        // While actively panning from the edge (legacy support), use tracking
+        if isEdgePanning {
+            let clamped = min(max(edgePanTracking, 0), drawerWidth)
+            return -drawerWidth + clamped
+        }
+
+        // Otherwise, snap to the state-driven position
+        return viewModel.isDrawerOpen ? 0 : -drawerWidth
+    }
+    
+    private var dimmingOpacity: Double {
+        if viewModel.isDrawerOpen && !isInteracting && !isEdgePanning {
+            return 0.3
+        }
+
+        // Compute openness fraction from interactive offset when interacting or edge panning
+        if isInteracting {
+            let openFraction = 1 - min(max((-interactiveOffset) / drawerWidth, 0), 1) // 0 closed, 1 open
+            return 0.3 * openFraction
+        } else if isEdgePanning {
+            let fraction = min(max(edgePanTracking / drawerWidth, 0), 1)
+            return 0.3 * fraction
+        }
+
+        return 0.0
+    }
+    
     // MARK: - Gestures
     
     /// Edge pan gesture to open the drawer from the leading edge
     private var edgePanGesture: some Gesture {
-        DragGesture(minimumDistance: 10)
+        DragGesture(minimumDistance: 0)
             .onChanged { value in
-                // Only open if dragging to the right from the leading edge
-                if value.translation.width > 10 {
-                    viewModel.openDrawer()
+                if value.translation.width > 0 {
+                    isEdgePanning = true
+                    isInteracting = true
+                    let clamped = min(value.translation.width, drawerWidth)
+                    interactiveOffset = -drawerWidth + clamped
+                    edgePanTracking = clamped
                 }
+            }
+            .onEnded { value in
+                let dx = value.translation.width
+                let vx = value.velocity.width // points per second
+
+                let openByDistance = dx > drawerWidth * 0.4
+                let openByVelocity = vx > 800
+
+                if openByDistance || openByVelocity {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        viewModel.openDrawer()
+                        interactiveOffset = 0
+                    }
+                } else {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        // keep closed
+                        viewModel.closeDrawer()
+                        interactiveOffset = -drawerWidth
+                    }
+                }
+
+                // Clear tracking after committing state
+                isEdgePanning = false
+                edgePanTracking = 0
+                isInteracting = false
             }
     }
     
     /// Drag gesture on the drawer itself to close it
     private var drawerDragGesture: some Gesture {
         DragGesture()
-            .updating($dragOffset) { value, state, _ in
+            .onChanged { value in
                 // Only allow dragging to the left (closing) if an operator is selected
                 if canCloseDrawer && value.translation.width < 0 {
-                    state = value.translation.width
+                    isDrawerDragging = true
+                    isInteracting = true
+                    let clamped = max(value.translation.width, -drawerWidth)
+                    drawerDragTracking = clamped
+                    // Base is 0 when open; apply clamped negative translation
+                    interactiveOffset = 0 + clamped
                 }
             }
             .onEnded { value in
                 // Only close if an operator is selected
                 if canCloseDrawer {
-                    // Close drawer if dragged more than 50% to the left
-                    if value.translation.width < -drawerWidth * 0.5 {
-                        viewModel.closeDrawer()
-                    } else if value.translation.width < 0 {
-                        // Snap back if not dragged far enough
+                    let dx = value.translation.width
+                    let vx = value.velocity.width // points per second
+
+                    let closeByDistance = dx < -drawerWidth * 0.4
+                    let closeByVelocity = vx < -800
+
+                    if closeByDistance || closeByVelocity {
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                            // Drawer stays open
+                            viewModel.closeDrawer()
+                            interactiveOffset = -drawerWidth
+                        }
+                    } else if dx < 0 {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                            // Snap back open
+                            viewModel.openDrawer()
+                            interactiveOffset = 0
                         }
                     }
                 }
+                // Clear tracking after committing state
+                isDrawerDragging = false
+                drawerDragTracking = 0
+                isInteracting = false
             }
     }
 }
