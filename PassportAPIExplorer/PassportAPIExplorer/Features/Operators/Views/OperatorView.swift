@@ -75,86 +75,31 @@ struct OperatorView: View {
                 .padding(.bottom, 12)
                 
                 if viewModel?.isLoadingZones == true {
-                    ProgressView("Loading zones...")
-                        .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    LoadingStateView(message: "Loading zones...")
                 } else if let error = viewModel?.zonesError {
-                    VStack(spacing: 16) {
-                        Image(systemName: "exclamationmark.triangle")
-                            .font(.system(size: 50))
-                            .foregroundColor(.cyanAccent)
-                        Text("Failed to load zones")
-                            .font(.headline)
-                            .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
-                        Text(error)
-                            .font(.subheadline)
-                            .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                            .multilineTextAlignment(.center)
-                        Button("Retry") {
-                            viewModel?.loadZones()
-                        }
-                        .buttonStyle(GlassmorphismButtonStyle(isPrimary: true))
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .adaptiveGlassmorphismCard()
-                    .padding()
+                    ErrorStateView(
+                        title: "Failed to load zones",
+                        message: error,
+                        retryAction: { viewModel?.loadZones() }
+                    )
                 } else if (viewModel?.filteredZones.isEmpty ?? true) && !(viewModel?.searchText.isEmpty ?? true) {
-                    VStack(spacing: 16) {
-                        Image(systemName: "magnifyingglass")
-                            .font(.system(size: 50))
-                            .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                        Text("No zones found")
-                            .font(.headline)
-                            .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
-                        Text("Try adjusting your search terms")
-                            .font(.subheadline)
-                            .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .adaptiveGlassmorphismCard()
-                    .padding()
+                    EmptyStateView(
+                        icon: "magnifyingglass",
+                        title: "No zones found",
+                        message: "Try adjusting your search terms"
+                    )
                 } else if (viewModel?.zones.isEmpty ?? true) {
-                    VStack(spacing: 20) {
-                        Image(systemName: "location.slash")
-                            .font(.system(size: 50))
-                            .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                        
-                        VStack(spacing: 8) {
-                            Text("No zones available")
-                                .font(.headline)
-                                .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
-                            Text("This operator doesn't have any zones configured")
-                                .font(.subheadline)
-                                .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                                .multilineTextAlignment(.center)
-                        }
-                        
-                        HStack(spacing: 12) {
-                            Button(action: {
-                                viewModel?.loadZones()
-                            }) {
-                                HStack(spacing: 6) {
-                                    Image(systemName: "arrow.clockwise")
-                                        .font(.caption)
-                                    Text("Refresh")
-                                        .font(.subheadline)
-                                        .fontWeight(.medium)
-                                }
-                            }
-                            .buttonStyle(GlassmorphismButtonStyle(isPrimary: true))
-                            
-                            Button(action: {
-                                viewModel?.loadZones()
-                            }) {
-                                Image(systemName: "magnifyingglass")
-                                    .font(.title2)
-                            }
-                            .buttonStyle(GlassmorphismButtonStyle(isPrimary: false))
-                        }
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .adaptiveGlassmorphismCard()
-                    .padding()
+                    EmptyStateView(
+                        icon: "location.slash",
+                        title: "No zones available",
+                        message: "This operator doesn't have any zones configured",
+                        actionTitle: "Refresh",
+                        action: {
+                            viewModel?.loadZones()
+                        },
+                        secondaryActionTitle: "Search",
+                        secondaryAction: { viewModel?.loadZones() }
+                    )
                 } else {
                     ScrollView {
                         LazyVStack(spacing: 8) {
