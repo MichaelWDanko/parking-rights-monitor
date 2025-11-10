@@ -178,7 +178,7 @@ struct OperatorCardView: View {
     let colorScheme: ColorScheme
     
     var body: some View {
-        NavigationLink(destination: OperatorView(selectedOperator: `operator`)) {
+        NavigationLink(destination: OperatorZoneView(selectedOperator: `operator`)) {
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
                     Text(`operator`.name)

@@ -1,5 +1,5 @@
 //
-//  OperatorView.swift
+//  OperatorZoneView.swift
 //  Passport API Explorer
 //
 //  Created by Michael Danko on 10/6/25.
@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct OperatorView: View {
+struct OperatorZoneView: View {
     var selectedOperator: Operator
     var selectedZone: Zone?
     
@@ -305,7 +305,7 @@ struct FloatingZoneFilterSection: View {
 #Preview {
     let mockAPIService = PreviewEnvironment.makePreviewService()
     
-    OperatorView(selectedOperator: zdanko)
+    OperatorZoneView(selectedOperator: zdanko)
         .environmentObject(mockAPIService)
 }
 
