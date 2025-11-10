@@ -8,211 +8,34 @@
 import SwiftUI
 import SwiftData
 
+/// Operator selection view for NavigationSplitView sidebar (iPad/Mac)
 struct OperatorSelectionView: View {
-    @Environment(\.modelContext) private var modelContext
-    @AppStorage("selectedThemeMode") private var selectedThemeMode: ThemeMode = .auto
+    @EnvironmentObject var drawerViewModel: OperatorDrawerViewModel
     @Environment(\.colorScheme) var colorScheme
-    @Query private var operators: [Operator]
-    @State private var showingAddOperator = false
-    @State private var operatorToEdit: Operator?
-    @State private var dataService: OperatorDataService?
-    @State private var isRefreshing = false
     
     var body: some View {
-        VStack {
-                if operators.isEmpty {
-                    VStack(spacing: 20) {
-                        Image(systemName: "building.2")
-                            .font(.system(size: 50))
-                            .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                        
-                        VStack(spacing: 8) {
-                            Text("No Operators")
-                                .font(.headline)
-                                .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
-                            Text("Add your first operator to get started")
-                                .font(.subheadline)
-                                .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                                .multilineTextAlignment(.center)
-                        }
-                        
-                        Button("Add Operator") {
-                            showingAddOperator = true
-                        }
-                        .buttonStyle(GlassmorphismButtonStyle(isPrimary: true))
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .adaptiveGlassmorphismCard()
-                    .padding()
-                } else {
-                    List {
-                        ForEach(operators) { op in
-                            OperatorCardView(operator: op, colorScheme: colorScheme)
-                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                    Button(role: .destructive) {
-                                        deleteOperator(op)
-                                    } label: {
-                                        Label("Delete", systemImage: "trash")
-                                    }
-                                    
-                                    Button {
-                                        operatorToEdit = op
-                                    } label: {
-                                        Label("Edit", systemImage: "pencil")
-                                    }
-                                    .tint(.blue)
-                                }
-                                .contextMenu {
-                                    Button {
-                                        operatorToEdit = op
-                                    } label: {
-                                        Label("Edit", systemImage: "pencil")
-                                    }
-                                    
-                                    Button(role: .destructive) {
-                                        deleteOperator(op)
-                                    } label: {
-                                        Label("Delete", systemImage: "trash")
-                                    }
-                                }
-                                .listRowBackground(Color.clear)
-                                .listRowSeparator(.hidden)
-                                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
-                        }
-                    }
-                    .listStyle(.plain)
-                    .listSectionSeparator(.hidden)
-                    .scrollContentBackground(.hidden)
-                    .refreshable {
-                        await refreshOperators()
-                    }
-                }
-        }
-        .navigationTitle(isRefreshing ? "Refreshing..." : "Operators")
+        OperatorListContent(
+            onSelectOperator: { op in
+                drawerViewModel.selectOperator(op)
+            },
+            isIPhone: UIDevice.current.userInterfaceIdiom == .phone,
+            selectedOperatorId: .constant(drawerViewModel.selectedOperator?.id)
+        )
+        .navigationTitle("Operators")
         .adaptiveGlassmorphismNavigation()
         .adaptiveGlassmorphismBackground()
         .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: {
-                    showingAddOperator = true
-                }) {
-                    Image(systemName: "plus")
-                        .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
+            // Only show hamburger on iPhone (drawer is only on iPhone)
+            if UIDevice.current.userInterfaceIdiom == .phone {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(action: {
+                        drawerViewModel.openDrawer()
+                    }) {
+                        Image(systemName: "line.3.horizontal")
+                            .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
+                    }
                 }
             }
-        }
-        .sheet(isPresented: $showingAddOperator) {
-            AddOperatorView()
-        }
-        .sheet(item: $operatorToEdit) { op in
-            EditOperatorView(operatorToEdit: op)
-        }
-        .onAppear {
-            print("👁️ [OPERATOR VIEW] Operator selection view appeared")
-            print("📅 [OPERATOR VIEW] Time: \(Date())")
-            print("🔍 [OPERATOR VIEW] Loaded operators count: \(operators.count)")
-            
-            if operators.isEmpty {
-                print("⚠️ [OPERATOR VIEW] No operators found")
-            } else {
-                print("📋 [OPERATOR VIEW] Current operators:")
-                for (index, op) in operators.enumerated() {
-                    print("   [OPERATOR VIEW] \(index + 1). '\(op.name)' (ID: \(op.id))")
-                }
-            }
-            
-            if dataService == nil {
-                print("🔧 [OPERATOR VIEW] Initializing OperatorDataService...")
-                dataService = OperatorDataService(modelContext: modelContext)
-                print("🔄 [OPERATOR VIEW] Checking for mock data migration...")
-                dataService?.migrateFromMockDataIfNeeded()
-            }
-        }
-    }
-    
-    
-    private func environmentColor(for environment: OperatorEnvironment) -> Color {
-        switch environment {
-        case .production:
-            return .green
-        case .staging:
-            return .orange
-        case .development:
-            return .blue
-        }
-    }
-    
-    @MainActor
-    private func refreshOperators() async {
-        isRefreshing = true
-        print("🔄 Refreshing operators...")
-        
-        // Add a small delay to show the refresh animation
-        try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
-        
-        // Force SwiftData to refresh by accessing the modelContext
-        do {
-            try modelContext.save()
-            print("✅ Operators refreshed successfully")
-            print("☁️ CloudKit sync will update any changes from other devices")
-        } catch {
-            print("❌ Failed to refresh operators: \(error)")
-        }
-        
-        isRefreshing = false
-    }
-    
-    private func deleteOperator(_ op: Operator) {
-        modelContext.delete(op)
-        do {
-            try modelContext.save()
-            print("🗑️ Operator deleted: \(op.name)")
-        } catch {
-            print("❌ Failed to delete operator: \(error.localizedDescription)")
-        }
-    }
-}
-
-struct OperatorCardView: View {
-    let `operator`: Operator
-    let colorScheme: ColorScheme
-    
-    var body: some View {
-        NavigationLink(destination: OperatorView(selectedOperator: `operator`)) {
-            VStack(alignment: .leading, spacing: 6) {
-                HStack {
-                    Text(`operator`.name)
-                        .font(.headline)
-                        .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
-                    Spacer()
-                    Text(`operator`.environment?.rawValue.capitalized ?? "Unknown")
-                        .font(.caption)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(environmentColor(for: `operator`.environment ?? .production))
-                        .foregroundColor(.white)
-                        .cornerRadius(8)
-                }
-                Text("ID: \(`operator`.id)")
-                    .font(.caption)
-                    .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .contentShape(Rectangle())
-        }
-        .adaptiveGlassmorphismListRow()
-        .buttonStyle(PlainButtonStyle())
-    }
-    
-    private func environmentColor(for environment: OperatorEnvironment) -> Color {
-        switch environment {
-        case .production:
-            return .green
-        case .staging:
-            return .orange
-        case .development:
-            return .blue
         }
     }
 }
@@ -220,6 +43,7 @@ struct OperatorCardView: View {
 #Preview {
     NavigationStack {
         OperatorSelectionView()
+            .environmentObject(OperatorDrawerViewModel())
     }
     .modelContainer(for: Operator.self, inMemory: true)
 }

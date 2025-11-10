@@ -127,7 +127,7 @@ private final class InMemoryTokenStore: TokenStore, @unchecked Sendable {
     private var _accessToken: String?
     private var _expiryDate: Date?
     
-    init() {}
+    nonisolated init() {}
     
     var accessToken: String? { get async { _accessToken } }
     var expiryDate: Date? { get async { _expiryDate } }

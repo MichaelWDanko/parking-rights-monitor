@@ -60,147 +60,24 @@ struct iCloudTestView: View {
                     
                     // Operators List
                     if !operators.isEmpty {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Current Operators (\(operators.count))")
-                                .font(.headline)
-                                .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
-                                .padding(.horizontal)
-                            
-                            List {
-                                ForEach(operators) { op in
-                                    HStack {
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            Text(op.name)
-                                                .font(.subheadline)
-                                                .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
-                                            Text("ID: \(op.id)")
-                                                .font(.caption2)
-                                                .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                                                .lineLimit(1)
-                                        }
-                                        Spacer()
-                                        Text(op.environment?.rawValue.capitalized ?? "Unknown")
-                                            .font(.caption)
-                                            .padding(.horizontal, 8)
-                                            .padding(.vertical, 4)
-                                            .background(Color.adaptiveCyanAccent(colorScheme == .dark))
-                                            .foregroundColor(.navyBlue)
-                                            .cornerRadius(4)
-                                    }
-                                    .listRowBackground(Color.adaptiveGlassBackground(colorScheme == .dark))
-                                    .listRowSeparator(.hidden)
-                                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                        Button(role: .destructive) {
-                                            deleteOperator(op)
-                                        } label: {
-                                            Label("Delete", systemImage: "trash")
-                                        }
-                                        
-                                        Button {
-                                            editOperator(op)
-                                        } label: {
-                                            Label("Edit", systemImage: "pencil")
-                                        }
-                                        .tint(.blue)
-                                    }
-                                    .contextMenu {
-                                        Button {
-                                            editOperator(op)
-                                        } label: {
-                                            Label("Edit", systemImage: "pencil")
-                                        }
-                                        
-                                        Button(role: .destructive) {
-                                            deleteOperator(op)
-                                        } label: {
-                                            Label("Delete", systemImage: "trash")
-                                        }
-                                    }
-                                }
-                            }
-                            .frame(height: CGFloat(operators.count) * 70)
-                            .scrollDisabled(true)
-                            .scrollContentBackground(.hidden)
-                            .listStyle(.plain)
-                            .listSectionSeparator(.hidden)
-                        }
-                        .padding()
-                        .adaptiveGlassmorphismCard()
+                        OperatorsListCard(
+                            operators: operators,
+                            onEdit: { editOperator($0) },
+                            onDelete: { deleteOperator($0) }
+                        )
                         .padding(.horizontal)
                     }
                     
                     // iCloud Status
-                    VStack(spacing: 16) {
-                        Text("iCloud Status")
-                            .font(.headline)
-                            .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
-                        
-                        HStack(spacing: 12) {
-                            Image(systemName: cloudKitAvailable ? "icloud.fill" : "icloud.slash.fill")
-                                .foregroundColor(cloudKitAvailable ? Color.adaptiveCyanAccent(colorScheme == .dark) : .red)
-                                .font(.title2)
-                                .symbolEffect(.pulse)
-                            
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(iCloudAccountStatus)
-                                    .font(.subheadline)
-                                    .fontWeight(.semibold)
-                                    .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
-                                
-                                if let lastSync = lastSyncTime {
-                                    Text("Last sync: \(lastSync.formatted(date: .omitted, time: .shortened))")
-                                        .font(.caption)
-                                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                                }
-                            }
-                            
-                            Spacer()
-                            
-                            Image(systemName: cloudKitAvailable ? "checkmark.circle.fill" : "xmark.circle.fill")
-                                .foregroundColor(cloudKitAvailable ? .green : .red)
-                        }
-                        
-                        // Diagnostic Information
-                        if !diagnosticMessage.isEmpty {
-                            Text(diagnosticMessage)
-                                .font(.caption)
-                                .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                                .multilineTextAlignment(.leading)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(12)
-                                .background(Color.adaptiveGlassBackground(colorScheme == .dark).opacity(0.5))
-                                .cornerRadius(8)
-                        }
-                        
-                        VStack(spacing: 12) {
-                            Button(action: triggerSync) {
-                                HStack(spacing: 8) {
-                                    Image(systemName: "arrow.triangle.2.circlepath")
-                                        .font(.system(size: 16))
-                                    Text(isSyncing ? "Syncing..." : "Sync Now")
-                                        .font(.system(size: 16, weight: .semibold))
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 2)
-                            }
-                            .buttonStyle(GlassmorphismButtonStyle(isPrimary: true))
-                            .disabled(isSyncing || !cloudKitAvailable)
-                            
-                            Button(action: checkICloudStatus) {
-                                HStack(spacing: 8) {
-                                    Image(systemName: "info.circle")
-                                        .font(.system(size: 14))
-                                    Text("Check iCloud Status")
-                                        .font(.system(size: 14, weight: .medium))
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 2)
-                            }
-                            .buttonStyle(GlassmorphismButtonStyle(isPrimary: false))
-                        }
-                    }
-                    .padding()
-                    .adaptiveGlassmorphismCard()
+                    iCloudStatusCard(
+                        accountStatus: iCloudAccountStatus,
+                        cloudKitAvailable: cloudKitAvailable,
+                        diagnosticMessage: diagnosticMessage,
+                        lastSyncTime: lastSyncTime,
+                        isSyncing: isSyncing,
+                        onSync: triggerSync,
+                        onCheckStatus: checkICloudStatus
+                    )
                     .padding(.horizontal)
                     .padding(.bottom)
                 }
@@ -233,38 +110,15 @@ struct iCloudTestView: View {
                 checkICloudStatus()
             }
             .sheet(item: $editingOperator) { op in
-                NavigationStack {
-                    VStack(spacing: 20) {
-                        Text("Edit Operator")
-                            .font(.title2)
-                            .fontWeight(.bold)
-                            .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
-                            .padding(.top)
-                        
-                        TextField("Operator Name", text: $editedName)
-                            .adaptiveGlassmorphismTextField()
-                            .padding(.horizontal)
-                        
-                        Button("Save Changes") {
-                            saveEditedOperator(op)
-                        }
-                        .buttonStyle(GlassmorphismButtonStyle(isPrimary: true))
-                        .disabled(editedName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                        .padding(.horizontal)
-                        
-                        Spacer()
-                    }
-                    .adaptiveGlassmorphismBackground()
-                    .toolbar {
-                        ToolbarItem(placement: .cancellationAction) {
-                            Button("Cancel") {
-                                editingOperator = nil
-                            }
-                            .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
-                        }
-                    }
+                EditOperatorSheet(
+                    operatorToEdit: op,
+                    editedName: $editedName,
+                    onSave: { saveEditedOperator(op) },
+                    onCancel: { editingOperator = nil }
+                )
+                .onAppear {
+                    editedName = op.name
                 }
-                .presentationDetents([.height(300)])
             }
         }
     }
@@ -445,7 +299,7 @@ struct iCloudTestView: View {
                 // Additional checks if account is available
                 if accountStatus == .available {
                     // Check if we can access the database
-                    let database = container.privateCloudDatabase
+                    _ = container.privateCloudDatabase
                     print("🗄️ [DIAGNOSTIC] Private database accessed successfully")
                     
                     // Verify we can access the database (no need for actual query)

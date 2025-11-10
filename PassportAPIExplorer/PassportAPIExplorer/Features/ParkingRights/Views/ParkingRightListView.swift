@@ -46,46 +46,20 @@ struct ParkingRightListView: View {
                 
                 VStack(spacing: 0) {
                     if bindableViewModel.isLoadingRights {
-                        ProgressView("Loading parking rights...")
-                            .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        LoadingStateView(message: "Loading parking rights...")
                     } else if let error = bindableViewModel.rightsError {
-                        VStack(spacing: 16) {
-                            Image(systemName: "exclamationmark.triangle")
-                                .font(.system(size: 50))
-                                .foregroundColor(.cyanAccent)
-                            Text("Failed to load parking rights")
-                                .font(.headline)
-                                .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
-                            Text(error)
-                                .font(.subheadline)
-                                .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                                .multilineTextAlignment(.center)
-                            Button("Retry") {
-                                bindableViewModel.loadParkingRights()
-                            }
-                            .buttonStyle(GlassmorphismButtonStyle(isPrimary: true))
-                        }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .adaptiveGlassmorphismCard()
-                        .padding()
+                        ErrorStateView(
+                            title: "Failed to load parking rights",
+                            message: error,
+                            retryAction: { bindableViewModel.loadParkingRights() }
+                        )
                     } else if bindableViewModel.filteredRights.isEmpty {
                         let isEmptySearch = bindableViewModel.searchMode == .zoneBased && !bindableViewModel.searchText.isEmpty
-                        VStack(spacing: 16) {
-                            Image(systemName: isEmptySearch ? "magnifyingglass" : "car")
-                                .font(.system(size: 50))
-                                .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                            Text(isEmptySearch ? "No parking rights found" : "No parking rights available")
-                                .font(.headline)
-                                .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
-                            Text(isEmptySearch ? "Try adjusting your search terms" : (bindableViewModel.searchMode == .zoneBased ? "This zone doesn't have any active parking rights" : "Use the search below to find parking rights"))
-                                .font(.subheadline)
-                                .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                                .multilineTextAlignment(.center)
-                        }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .adaptiveGlassmorphismCard()
-                        .padding()
+                        EmptyStateView(
+                            icon: isEmptySearch ? "magnifyingglass" : "car",
+                            title: isEmptySearch ? "No parking rights found" : "No parking rights available",
+                            message: isEmptySearch ? "Try adjusting your search terms" : (bindableViewModel.searchMode == .zoneBased ? "This zone doesn't have any active parking rights" : "Use the search below to find parking rights")
+                        )
                     } else {
                         ScrollView {
                             LazyVStack(spacing: 8) {

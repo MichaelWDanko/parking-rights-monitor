@@ -15,7 +15,7 @@ enum SortOption: String, CaseIterable {
     case numberDescending = "DESC by Number"
 }
 
-extension OperatorView {
+extension OperatorZoneView {
     @Observable
     class OperatorViewModel {
         var zones: [Zone] = []

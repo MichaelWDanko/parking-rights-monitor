@@ -56,10 +56,126 @@ private struct ParkingSessionEventInnerView: View {
             
             if !hasDisplayableSessions {
                 // No displayable sessions: Show landing page with pulsing car icon
-                landingPageView
+                SessionLandingView(
+                    onStartNewSession: { showingStartForm = true },
+                    onRefresh: { await listViewModel.triggerSync() }
+                )
             } else {
                 // Has sessions (active or completed): Show sessions list
-                sessionsListView
+                SessionsListView(
+                    activeSessions: listViewModel.activeSessions,
+                    completedSessions: completedSessions,
+                    operators: operators,
+                    onRefresh: { await listViewModel.triggerSync() },
+                    onStartNewSession: { showingStartForm = true },
+                    onSessionSelected: { sessionDetailModal = $0 },
+                    onExtendSession: { session in
+                        selectedSession = session
+                        selectedTab = .extend
+                    },
+                    onStopSession: { session in
+                        selectedSession = session
+                        selectedTab = .stop
+                    },
+                    onDeleteSession: { listViewModel.deleteSession($0) }
+                )
+                .sheet(item: $sessionDetailModal) { session in
+                    NavigationStack {
+                        SessionDetailView(
+                            session: session,
+                            operators: operators,
+                            onDismiss: { sessionDetailModal = nil }
+                        )
+                    }
+                }
+                .sheet(isPresented: Binding(
+                    get: { selectedSession != nil && selectedTab == .extend },
+                    set: { if !$0 { selectedSession = nil } }
+                )) {
+                    if let session = selectedSession {
+                        NavigationStack {
+                            ExtendSessionFormView(session: session, formViewModel: formViewModel)
+                                .navigationTitle("Extend Session")
+                                .navigationBarTitleDisplayMode(.inline)
+                                .toolbar {
+                                    ToolbarItem(placement: .cancellationAction) {
+                                        Button("Cancel") {
+                                            selectedSession = nil
+                                        }
+                                        .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
+                                    }
+                                }
+                                .overlay(alignment: .bottom) {
+                                    VStack {
+                                        Button(action: {
+                                            Task {
+                                                do {
+                                                    try await formViewModel.submitExtendSession(session)
+                                                    selectedSession = nil
+                                                } catch {}
+                                            }
+                                        }) {
+                                            Label("Extend Session", systemImage: "clock.arrow.circlepath")
+                                                .font(.headline)
+                                                .frame(maxWidth: .infinity)
+                                        }
+                                        .buttonStyle(GlassmorphismButtonStyle(isPrimary: true))
+                                    }
+                                    .padding()
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 0)
+                                            .fill(Color.adaptiveGlassBackground(colorScheme == .dark))
+                                            .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: -5)
+                                    )
+                                }
+                        }
+                        .adaptiveGlassmorphismBackground()
+                    }
+                }
+                .sheet(isPresented: Binding(
+                    get: { selectedSession != nil && selectedTab == .stop },
+                    set: { if !$0 { selectedSession = nil } }
+                )) {
+                    if let session = selectedSession {
+                        NavigationStack {
+                            StopSessionFormView(session: session, formViewModel: formViewModel)
+                                .navigationTitle("Stop Session")
+                                .navigationBarTitleDisplayMode(.inline)
+                                .toolbar {
+                                    ToolbarItem(placement: .cancellationAction) {
+                                        Button("Cancel") {
+                                            selectedSession = nil
+                                        }
+                                        .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
+                                    }
+                                }
+                                .overlay(alignment: .bottom) {
+                                    VStack {
+                                        Button(action: {
+                                            Task {
+                                                do {
+                                                    try await formViewModel.submitStopSession(session)
+                                                    selectedSession = nil
+                                                } catch {}
+                                            }
+                                        }) {
+                                            Label("Stop Session", systemImage: "stop.circle.fill")
+                                                .font(.headline)
+                                                .frame(maxWidth: .infinity)
+                                        }
+                                        .buttonStyle(GlassmorphismButtonStyle(isPrimary: true))
+                                    }
+                                    .padding()
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 0)
+                                            .fill(Color.adaptiveGlassBackground(colorScheme == .dark))
+                                            .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: -5)
+                                    )
+                                }
+                        }
+                        .adaptiveGlassmorphismBackground()
+                    }
+                }
             }
         }
         .adaptiveGlassmorphismBackground()
@@ -68,19 +184,55 @@ private struct ParkingSessionEventInnerView: View {
         .navigationBarTitleDisplayMode(.large)
         .sheet(isPresented: $showingStartForm) {
             NavigationStack {
-                startFormView
-                    .navigationTitle("Start New Session")
-                    .navigationBarTitleDisplayMode(.inline)
-                    .adaptiveGlassmorphismBackground()
-                    .adaptiveGlassmorphismNavigation()
-                    .toolbar {
-                        ToolbarItem(placement: .cancellationAction) {
-                            Button("Cancel") {
-                                showingStartForm = false
+                ZStack(alignment: .bottom) {
+                    StartSessionFormView(formViewModel: formViewModel)
+                    
+                    // Floating button with frosted glass background
+                    VStack(spacing: 0) {
+                        VStack {
+                            Button(action: {
+                                Task {
+                                    do {
+                                        try await formViewModel.submitStartSession()
+                                        showingStartForm = false
+                                    } catch {}
+                                }
+                            }) {
+                                Label("Start Parking Session", systemImage: "play.circle.fill")
+                                    .font(.headline)
+                                    .frame(maxWidth: .infinity)
                             }
-                            .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
+                            .buttonStyle(GlassmorphismButtonStyle(isPrimary: true))
+                            .disabled(!formViewModel.isStartFormValid)
+                            .opacity(formViewModel.isStartFormValid ? 1.0 : 0.5)
                         }
+                        .padding()
+                        
+                        Color.clear.frame(height: 0)
                     }
+                    .background(
+                        ZStack {
+                            Rectangle()
+                                .fill(.ultraThinMaterial)
+                            Rectangle()
+                                .fill(colorScheme == .dark ? Color.navyBlue.opacity(0.3) : Color.white.opacity(0.5))
+                        }
+                        .ignoresSafeArea(edges: .bottom)
+                        .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: -5)
+                    )
+                }
+                .navigationTitle("Start New Session")
+                .navigationBarTitleDisplayMode(.inline)
+                .adaptiveGlassmorphismBackground()
+                .adaptiveGlassmorphismNavigation()
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") {
+                            showingStartForm = false
+                        }
+                        .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
+                    }
+                }
             }
         }
         .alert("Error", isPresented: .constant(eventPublisher.errorMessage != nil)) {
@@ -110,920 +262,6 @@ private struct ParkingSessionEventInnerView: View {
         }
     }
     
-    // MARK: - Main Views
-    
-    @ViewBuilder
-    private var landingPageView: some View {
-        ScrollView {
-            VStack(spacing: 24) {
-                Spacer()
-                    .frame(height: 40)
-                
-                // Icon with pulsing gradient
-                VStack(spacing: 16) {
-                    Image(systemName: "car.fill")
-                        .font(.system(size: 64))
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [Color.cyanAccent, Color.cyanAccentLight],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .symbolEffect(.pulse, options: .repeating)
-                    
-                    VStack(spacing: 8) {
-                        Text("No Parking Sessions")
-                            .font(.title2)
-                            .fontWeight(.bold)
-                            .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
-                        
-                        Text("Start a new parking session to begin tracking")
-                            .font(.subheadline)
-                            .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 32)
-                    }
-                }
-                .padding(.top, 60)
-                
-                Spacer()
-                
-                // Primary CTA Button
-                Button(action: {
-                    showingStartForm = true
-                }) {
-                    Label("Start New Session", systemImage: "plus.circle.fill")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(GlassmorphismButtonStyle(isPrimary: true))
-                .padding(.horizontal, 32)
-                .padding(.bottom, 20)
-            }
-            .frame(maxWidth: .infinity)
-            .frame(minHeight: UIScreen.main.bounds.height * 0.7)
-        }
-        .refreshable {
-            await listViewModel.triggerSync()
-        }
-        .sheet(isPresented: $showingStartForm) {
-            NavigationStack {
-                startFormView
-                    .navigationTitle("Start New Session")
-                    .navigationBarTitleDisplayMode(.inline)
-                    .adaptiveGlassmorphismBackground()
-                    .adaptiveGlassmorphismNavigation()
-                    .toolbar {
-                        ToolbarItem(placement: .cancellationAction) {
-                            Button("Cancel") {
-                                showingStartForm = false
-                            }
-                            .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
-                        }
-                    }
-            }
-        }
-    }
-    
-    @ViewBuilder
-    private var startFormView: some View {
-        ZStack(alignment: .bottom) {
-            Form {
-                startSessionForm
-                
-                // Add padding at bottom for floating button
-                Section {
-                    Color.clear
-                        .frame(height: 80)
-                        .listRowBackground(Color.clear)
-                }
-            }
-            .scrollContentBackground(.hidden)
-            
-            // Floating button with frosted glass background
-            VStack(spacing: 0) {
-                // Button container
-            VStack {
-                Button(action: {
-                    Task {
-                        do {
-                            try await formViewModel.submitStartSession()
-                            showingStartForm = false
-                        } catch {}
-                    }
-                }) {
-                    Label("Start Parking Session", systemImage: "play.circle.fill")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                }
-                    .buttonStyle(GlassmorphismButtonStyle(isPrimary: true))
-                .disabled(!formViewModel.isStartFormValid)
-                    .opacity(formViewModel.isStartFormValid ? 1.0 : 0.5)
-                }
-                .padding()
-                
-                // Extra space to cover bottom safe area
-                Color.clear
-                    .frame(height: 0)
-            }
-            .background(
-                ZStack {
-                    // Frosted glass background
-                    Rectangle()
-                        .fill(.ultraThinMaterial)
-                    
-                    // Subtle tint overlay
-                    Rectangle()
-                        .fill(colorScheme == .dark ? Color.navyBlue.opacity(0.3) : Color.white.opacity(0.5))
-                }
-                .ignoresSafeArea(edges: .bottom)
-                .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: -5)
-            )
-        }
-    }
-    
-    @ViewBuilder
-    private var sessionsListView: some View {
-        ScrollView {
-            VStack(spacing: 16) {
-                // Sessions Section
-                VStack(alignment: .leading, spacing: 12) {
-                    let completedSessions = listViewModel.sessions.filter { !$0.isActive }
-                    
-                    if !listViewModel.activeSessions.isEmpty {
-                        Text("Active Sessions")
-                            .font(.title2)
-                            .fontWeight(.semibold)
-                            .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
-                            .padding(.horizontal, 16)
-                        
-                        ForEach(listViewModel.activeSessions) { session in
-                            sessionCard(session)
-                        }
-                    }
-                    
-                    if !completedSessions.isEmpty {
-                        Text("Completed Sessions")
-                            .font(.title2)
-                            .fontWeight(.semibold)
-                            .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
-                            .padding(.horizontal, 16)
-                            .padding(.top, listViewModel.activeSessions.isEmpty ? 0 : 8)
-                        
-                        ForEach(completedSessions) { session in
-                            sessionCard(session)
-                        }
-                    }
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 16)
-            .padding(.bottom, 100) // Padding for floating button
-        }
-        .refreshable {
-            await listViewModel.triggerSync()
-        }
-        .safeAreaInset(edge: .bottom) {
-            // Floating Start New Session button - always visible
-            Button(action: {
-                showingStartForm = true
-            }) {
-                Label("Start New Session", systemImage: "plus.circle.fill")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(GlassmorphismButtonStyle(isPrimary: true))
-            .padding(.horizontal, 32)
-            .padding(.bottom, 20)
-        }
-        .sheet(item: $sessionDetailModal) { session in
-            NavigationStack {
-                sessionDetailView(session)
-            }
-        }
-    }
-    
-    @ViewBuilder
-    private func sessionCard(_ session: ParkingSession) -> some View {
-        let isActiveNow = session.isActive && session.endTime > Date()
-        VStack(alignment: .leading, spacing: 12) {
-            // Header: Vehicle and Status
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("\(session.vehiclePlate) (\(session.vehicleState))")
-                        .font(.headline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
-                    
-                    // Operator name
-                    if let operatorName = operators.first(where: { $0.id == session.operatorId })?.name {
-                        Text(operatorName)
-                            .font(.subheadline)
-                            .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                    }
-                    
-                    // Zone name (without ID)
-                    Text(getZoneName(for: session))
-                        .font(.subheadline)
-                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                }
-                
-                Spacer()
-                
-                // Status and Info button
-                HStack(spacing: 8) {
-                    Button(action: {
-                        sessionDetailModal = session
-                    }) {
-                        Image(systemName: "info.circle")
-                            .font(.title3)
-                            .foregroundColor(Color.adaptiveCyanAccent(colorScheme == .dark))
-                    }
-                    .buttonStyle(.plain)
-                    
-                    Text(isActiveNow ? "Active" : "Stopped")
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .foregroundColor(isActiveNow ? .green : .red)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(isActiveNow ? Color.green.opacity(0.2) : Color.red.opacity(0.2))
-                        .cornerRadius(6)
-                }
-            }
-            
-            // Time info
-            HStack {
-                Label(session.startTime.formatted(date: .abbreviated, time: .shortened),
-                      systemImage: "clock")
-                Text("→")
-                Label(session.endTime.formatted(date: .abbreviated, time: .shortened),
-                      systemImage: "clock.badge.checkmark")
-            }
-            .font(.caption)
-            .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-            
-            // Action buttons for active sessions
-            if isActiveNow {
-                HStack(spacing: 12) {
-                    Button(action: {
-                        selectedSession = session
-                        selectedTab = .extend
-                    }) {
-                        Label("Extend", systemImage: "clock.arrow.circlepath")
-                            .font(.caption)
-                            .foregroundColor(Color.adaptiveCyanAccent(colorScheme == .dark))
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 8)
-                            .background(Color.adaptiveCyanAccent(colorScheme == .dark).opacity(0.15))
-                            .cornerRadius(8)
-                    }
-                    .buttonStyle(.plain)
-                    
-                    Button(action: {
-                        selectedSession = session
-                        selectedTab = .stop
-                    }) {
-                        Label("Stop", systemImage: "stop.circle")
-                            .font(.caption)
-                            .foregroundColor(.red)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 8)
-                            .background(Color.red.opacity(0.15))
-                            .cornerRadius(8)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .adaptiveGlassmorphismListRow()
-        .contextMenu {
-            Button(role: .destructive) {
-                listViewModel.deleteSession(session)
-            } label: {
-                Label("Delete", systemImage: "trash")
-            }
-        }
-        .sheet(isPresented: Binding(
-            get: { selectedSession?.id == session.id && selectedTab == .extend },
-            set: { if !$0 { selectedSession = nil } }
-        )) {
-            NavigationStack {
-                extendSessionSheet(session)
-            }
-        }
-        .sheet(isPresented: Binding(
-            get: { selectedSession?.id == session.id && selectedTab == .stop },
-            set: { if !$0 { selectedSession = nil } }
-        )) {
-            NavigationStack {
-                stopSessionSheet(session)
-            }
-        }
-    }
-    
-    // MARK: - Session Detail View
-    
-    @ViewBuilder
-    private func sessionDetailView(_ session: ParkingSession) -> some View {
-        Form {
-            Section(header: Text("Vehicle Information").foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))) {
-                LabeledContent("License Plate", value: session.vehiclePlate)
-                    .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                LabeledContent("State", value: session.vehicleState)
-                    .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                LabeledContent("Country", value: session.vehicleCountry)
-                    .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                if let spaceNumber = session.spaceNumber {
-                    LabeledContent("Space Number", value: spaceNumber)
-                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                }
-            }
-            .listRowBackground(Color.glassBackground)
-            
-            Section(header: Text("Location").foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))) {
-                if let operatorName = operators.first(where: { $0.id == session.operatorId })?.name {
-                    LabeledContent("Operator", value: operatorName)
-                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                }
-                
-                HStack {
-                    Text("Zone ID Type")
-                        .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
-                    Spacer()
-                    Text(session.computedZoneIdType == .passport ? "Passport" : "External")
-                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                }
-                
-                LabeledContent("Zone", value: getZoneName(for: session))
-                    .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-            }
-            .listRowBackground(Color.glassBackground)
-            
-            Section(header: Text("Session Times").foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))) {
-                LabeledContent("Start Time", value: session.startTime, format: .dateTime)
-                    .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                LabeledContent("End Time", value: session.endTime, format: .dateTime)
-                    .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                LabeledContent("Created", value: session.dateCreated, format: .dateTime)
-                    .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-            }
-            .listRowBackground(Color.glassBackground)
-            
-            Section(header: Text("API Identifiers").foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Session ID")
-                        .font(.caption)
-                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                    HStack {
-                        Text(session.sessionId)
-                            .font(.system(.caption, design: .monospaced))
-                            .foregroundColor(Color.adaptiveCyanAccent(colorScheme == .dark))
-                        Spacer()
-                        Button(action: {
-                            UIPasteboard.general.string = session.sessionId
-                        }) {
-                            Image(systemName: "doc.on.doc")
-                                .foregroundColor(Color.adaptiveCyanAccent(colorScheme == .dark))
-                        }
-                        .buttonStyle(.borderless)
-                    }
-                }
-                
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Operator ID")
-                        .font(.caption)
-                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                    HStack {
-                        Text(session.operatorId)
-                            .font(.system(.caption, design: .monospaced))
-                            .foregroundColor(Color.adaptiveCyanAccent(colorScheme == .dark))
-                        Spacer()
-                        Button(action: {
-                            UIPasteboard.general.string = session.operatorId
-                        }) {
-                            Image(systemName: "doc.on.doc")
-                                .foregroundColor(Color.adaptiveCyanAccent(colorScheme == .dark))
-                        }
-                        .buttonStyle(.borderless)
-                    }
-                }
-                
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Zone ID")
-                        .font(.caption)
-                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                    HStack {
-                        Text(session.zoneId)
-                            .font(.system(.caption, design: .monospaced))
-                            .foregroundColor(Color.adaptiveCyanAccent(colorScheme == .dark))
-                        Spacer()
-                        Button(action: {
-                            UIPasteboard.general.string = session.zoneId
-                        }) {
-                            Image(systemName: "doc.on.doc")
-                                .foregroundColor(Color.adaptiveCyanAccent(colorScheme == .dark))
-                        }
-                        .buttonStyle(.borderless)
-                    }
-                }
-            }
-            .listRowBackground(Color.glassBackground)
-            
-            Section(header: Text("Status").foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))) {
-                HStack {
-                    Text("Session Status")
-                        .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
-                    Spacer()
-                    Text(session.isActive ? "Active" : "Stopped")
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .foregroundColor(session.isActive ? .green : .red)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(session.isActive ? Color.green.opacity(0.2) : Color.red.opacity(0.2))
-                        .cornerRadius(6)
-                }
-            }
-            .listRowBackground(Color.glassBackground)
-        }
-        .scrollContentBackground(.hidden)
-        .adaptiveGlassmorphismBackground()
-        .navigationTitle("Session Details")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-                Button("Done") {
-                    sessionDetailModal = nil
-                }
-                .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
-            }
-        }
-    }
-    
-    // MARK: - Extend/Stop Session Sheets
-    
-    @ViewBuilder
-    private func extendSessionSheet(_ session: ParkingSession) -> some View {
-        ZStack(alignment: .bottom) {
-            Form {
-                Section(header: Text("Session Details").foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))) {
-                    LabeledContent("Vehicle", value: "\(session.vehiclePlate) (\(session.vehicleState))")
-                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                    LabeledContent("Zone", value: session.zoneId)
-                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                    LabeledContent("Current End", value: session.endTime, format: .dateTime)
-                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                }
-                .listRowBackground(Color.glassBackground)
-                
-                Section(header: Text("New End Time").foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))) {
-                    DatePicker("End Time", selection: $formViewModel.newEndTime)
-                }
-                .listRowBackground(Color.glassBackground)
-                
-                Section(header: Text("Extension Fees").foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))) {
-                    feesFields()
-                }
-                .listRowBackground(Color.glassBackground)
-                
-                Section(header: Text("Total Session Fees").foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))) {
-                    totalFeesFields()
-                }
-                .listRowBackground(Color.glassBackground)
-                
-                // Padding for button
-                Section {
-                    Color.clear.frame(height: 80).listRowBackground(Color.clear)
-                }
-            }
-            .scrollContentBackground(.hidden)
-            
-            VStack {
-                Button(action: {
-                    Task {
-                        do {
-                            try await formViewModel.submitExtendSession(session)
-                            selectedSession = nil
-                        } catch {}
-                    }
-                }) {
-                        Label("Extend Session", systemImage: "clock.arrow.circlepath")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(GlassmorphismButtonStyle(isPrimary: true))
-            }
-                            .padding()
-            .background(
-                RoundedRectangle(cornerRadius: 0)
-                    .fill(Color.adaptiveGlassBackground(colorScheme == .dark))
-                    .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: -5)
-            )
-        }
-        .adaptiveGlassmorphismBackground()
-        .navigationTitle("Extend Session")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-                Button("Cancel") {
-                    selectedSession = nil
-                }
-                .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
-            }
-        }
-    }
-    
-    @ViewBuilder
-    private func stopSessionSheet(_ session: ParkingSession) -> some View {
-        ZStack(alignment: .bottom) {
-            Form {
-                Section(header: Text("Session Details").foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))) {
-                    LabeledContent("Vehicle", value: "\(session.vehiclePlate) (\(session.vehicleState))")
-                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                    LabeledContent("Zone", value: session.zoneId)
-                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                    LabeledContent("Started", value: session.startTime, format: .dateTime)
-                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                }
-                .listRowBackground(Color.glassBackground)
-                
-                Section(header: Text("Actual End Time").foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))) {
-                    DatePicker("End Time", selection: $formViewModel.newEndTime)
-                }
-                .listRowBackground(Color.glassBackground)
-                
-                Section(header: Text("Stop Event Fees").foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))) {
-                    Text("Can be negative for refunds")
-                        .font(.caption)
-                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                    feesFields()
-                }
-                .listRowBackground(Color.glassBackground)
-                
-                Section(header: Text("Total Session Fees").foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))) {
-                    totalFeesFields()
-                }
-                .listRowBackground(Color.glassBackground)
-                
-                // Padding for button
-                Section {
-                    Color.clear.frame(height: 80).listRowBackground(Color.clear)
-                }
-            }
-            .scrollContentBackground(.hidden)
-            
-            VStack {
-                Button(action: {
-                    Task {
-                        do {
-                            try await formViewModel.submitStopSession(session)
-                            selectedSession = nil
-                        } catch {}
-                    }
-                }) {
-                        Label("Stop Session", systemImage: "stop.circle.fill")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(GlassmorphismButtonStyle(isPrimary: true))
-            }
-                            .padding()
-            .background(
-                RoundedRectangle(cornerRadius: 0)
-                    .fill(Color.adaptiveGlassBackground(colorScheme == .dark))
-                    .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: -5)
-            )
-        }
-        .adaptiveGlassmorphismBackground()
-        .navigationTitle("Stop Session")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-                Button("Cancel") {
-                    selectedSession = nil
-                }
-                .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
-            }
-        }
-    }
-    
-    @ViewBuilder
-    private func feesFields() -> some View {
-        HStack {
-            Text("Parking")
-            Spacer()
-            TextField("0.00", text: $formViewModel.parkingFee)
-                .keyboardType(.decimalPad)
-                .multilineTextAlignment(.trailing)
-                .frame(width: 80)
-        }
-        
-        HStack {
-            Text("Convenience")
-            Spacer()
-            TextField("0.00", text: $formViewModel.convenienceFee)
-                .keyboardType(.decimalPad)
-                .multilineTextAlignment(.trailing)
-                .frame(width: 80)
-        }
-        
-        HStack {
-            Text("Tax")
-            Spacer()
-            TextField("0.00", text: $formViewModel.tax)
-                .keyboardType(.decimalPad)
-                .multilineTextAlignment(.trailing)
-                .frame(width: 80)
-        }
-    }
-    
-    @ViewBuilder
-    private func totalFeesFields() -> some View {
-        HStack {
-            Text("Parking")
-            Spacer()
-            TextField("0.00", text: $formViewModel.totalParkingFee)
-                .keyboardType(.decimalPad)
-                .multilineTextAlignment(.trailing)
-                .frame(width: 80)
-        }
-        
-        HStack {
-            Text("Convenience")
-            Spacer()
-            TextField("0.00", text: $formViewModel.totalConvenienceFee)
-                .keyboardType(.decimalPad)
-                .multilineTextAlignment(.trailing)
-                .frame(width: 80)
-        }
-        
-        HStack {
-            Text("Tax")
-            Spacer()
-            TextField("0.00", text: $formViewModel.totalTax)
-                .keyboardType(.decimalPad)
-                .multilineTextAlignment(.trailing)
-                .frame(width: 80)
-        }
-    }
-    
-    // MARK: - Start Session Form
-    
-    @ViewBuilder
-    private var startSessionForm: some View {
-        Section {
-            HStack {
-                Text("Session ID Preview")
-                    .font(.headline)
-                    .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
-                Spacer()
-                Button(action: { formViewModel.generateNewSessionId() }) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "arrow.clockwise.circle.fill")
-                        Text("New ID")
-                    }
-                    .font(.caption)
-                }
-                .buttonStyle(.bordered)
-                .tint(Color.adaptiveCyanAccent(colorScheme == .dark))
-                .controlSize(.small)
-            }
-            
-            HStack {
-                Text(formViewModel.previewSessionId)
-                    .font(.system(.body, design: .monospaced))
-                    .foregroundColor(Color.adaptiveCyanAccent(colorScheme == .dark))
-                Spacer()
-                Button(action: {
-                    UIPasteboard.general.string = formViewModel.previewSessionId
-                }) {
-                    Image(systemName: "doc.on.doc")
-                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                }
-                .buttonStyle(.borderless)
-            }
-        }
-        .listRowBackground(Color.glassBackground)
-        
-        Section(header: Text("Operator").foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))) {
-            if operators.isEmpty {
-                Text("No operators available. Add an operator first.")
-                    .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                    .font(.caption)
-            } else {
-                Picker("Select Operator", selection: $formViewModel.selectedOperator) {
-                    Text("Choose operator...").tag(nil as Operator?)
-                    ForEach(operators) { op in
-                        Text(op.name).tag(op as Operator?)
-                    }
-                }
-                .onChange(of: formViewModel.selectedOperator) { _, newOperator in
-                    formViewModel.handleOperatorChange(newOperator)
-                }
-                
-                if let op = formViewModel.selectedOperator {
-                    LabeledContent("Operator ID", value: op.id)
-                        .font(.caption)
-                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                }
-            }
-        }
-        .listRowBackground(Color.glassBackground)
-        
-        if formViewModel.selectedOperator != nil {
-            Section(header: Text("Zone").foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))) {
-                Toggle("Use External Zone ID", isOn: $formViewModel.useExternalZoneId)
-                    .onChange(of: formViewModel.useExternalZoneId) { _, isOn in
-                        formViewModel.handleExternalZoneToggle(isOn)
-                    }
-                
-                if formViewModel.useExternalZoneId {
-                    TextField("External Zone ID", text: $formViewModel.externalZoneId, prompt: Text("Zone identifier"))
-                        .autocapitalization(.none)
-                } else {
-                    if formViewModel.isLoadingZones {
-                        HStack {
-                            ProgressView()
-                                .scaleEffect(0.8)
-                            Text("Loading zones...")
-                                .font(.caption)
-                                .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                        }
-                    } else if formViewModel.availableZones.isEmpty {
-                        Text("No zones available for this operator")
-                            .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                            .font(.caption)
-                    } else {
-                        Picker("Select Zone", selection: $formViewModel.selectedZone) {
-                            Text("Choose zone...").tag(nil as Zone?)
-                            ForEach(formViewModel.sortedZones) { zone in
-                                Text("\(zone.name) (\(zone.number))").tag(zone as Zone?)
-                            }
-                        }
-                        
-                        if let zone = formViewModel.selectedZone {
-                            LabeledContent("Zone ID", value: zone.id)
-                                .font(.caption)
-                                .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                        }
-                    }
-                }
-            }
-            .listRowBackground(Color.glassBackground)
-        }
-        
-        Section {
-            HStack {
-                Text("Vehicle")
-                    .font(.headline)
-                    .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
-                Spacer()
-                Button(action: { formViewModel.generateRandomVehicle() }) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "arrow.clockwise.circle.fill")
-                        Text("Random")
-                    }
-                    .font(.caption)
-                }
-                .buttonStyle(.bordered)
-                .tint(Color.adaptiveCyanAccent(colorScheme == .dark))
-                .controlSize(.small)
-            }
-            
-            TextField("License Plate", text: $formViewModel.vehiclePlate, prompt: Text("ABC1234"))
-                .autocapitalization(.allCharacters)
-            
-            HStack {
-                TextField("State Code", text: $formViewModel.vehicleState, prompt: Text("CA"))
-                    .autocapitalization(.allCharacters)
-                
-                TextField("Country Code", text: $formViewModel.vehicleCountry, prompt: Text("US"))
-                    .autocapitalization(.allCharacters)
-            }
-            
-            TextField("Space Number (Optional)", text: $formViewModel.spaceNumber, prompt: Text("1-50"))
-        }
-        .listRowBackground(Color.glassBackground)
-        
-        Section(header: Text("Session Times").foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))) {
-            DatePicker("Start Time", selection: $formViewModel.startTime)
-            
-            VStack(alignment: .leading, spacing: 8) {
-                DatePicker("End Time", selection: $formViewModel.endTime)
-                
-                HStack(spacing: 8) {
-                    Text("Quick Duration:")
-                        .font(.caption)
-                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
-                    
-                    Button("30m") {
-                        formViewModel.setQuickDuration(1800)
-                    }
-                    .buttonStyle(.bordered)
-                    .tint(Color.adaptiveCyanAccent(colorScheme == .dark))
-                    .controlSize(.mini)
-                    
-                    Button("1h") {
-                        formViewModel.setQuickDuration(3600)
-                    }
-                    .buttonStyle(.bordered)
-                    .tint(Color.adaptiveCyanAccent(colorScheme == .dark))
-                    .controlSize(.mini)
-                    
-                    Button("2h") {
-                        formViewModel.setQuickDuration(7200)
-                    }
-                    .buttonStyle(.bordered)
-                    .tint(Color.adaptiveCyanAccent(colorScheme == .dark))
-                    .controlSize(.mini)
-                    
-                    Button("4h") {
-                        formViewModel.setQuickDuration(14400)
-                    }
-                    .buttonStyle(.bordered)
-                    .tint(Color.adaptiveCyanAccent(colorScheme == .dark))
-                    .controlSize(.mini)
-                    
-                    Button("8h") {
-                        formViewModel.setQuickDuration(28800)
-                    }
-                    .buttonStyle(.bordered)
-                    .tint(Color.adaptiveCyanAccent(colorScheme == .dark))
-                    .controlSize(.mini)
-                }
-            }
-        }
-        .listRowBackground(Color.glassBackground)
-        
-        Section {
-            HStack {
-                Text("Event Fees")
-                    .font(.headline)
-                    .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
-                Spacer()
-                Button(action: { formViewModel.generateRandomFees() }) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "arrow.clockwise.circle.fill")
-                        Text("Random")
-                    }
-                    .font(.caption)
-                }
-                .buttonStyle(.bordered)
-                .tint(Color.adaptiveCyanAccent(colorScheme == .dark))
-                .controlSize(.small)
-            }
-            
-            HStack {
-                Text("Parking Fee")
-                Spacer()
-                TextField("Amount", text: $formViewModel.parkingFee)
-                    .keyboardType(.decimalPad)
-                    .multilineTextAlignment(.trailing)
-                    .frame(width: 80)
-            }
-            
-            HStack {
-                Text("Convenience Fee")
-                Spacer()
-                TextField("Amount", text: $formViewModel.convenienceFee)
-                    .keyboardType(.decimalPad)
-                    .multilineTextAlignment(.trailing)
-                    .frame(width: 80)
-            }
-            
-            HStack {
-                Text("Tax")
-                Spacer()
-                TextField("Amount", text: $formViewModel.tax)
-                    .keyboardType(.decimalPad)
-                    .multilineTextAlignment(.trailing)
-                    .frame(width: 80)
-            }
-            
-            HStack {
-                Text("Currency Code")
-                Spacer()
-                TextField("USD", text: $formViewModel.currencyCode)
-                    .autocapitalization(.allCharacters)
-                    .multilineTextAlignment(.trailing)
-                    .frame(width: 80)
-            }
-        }
-        .listRowBackground(Color.glassBackground)
-        
-        Section(header: Text("Optional").foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))) {
-            TextField("Account ID", text: $formViewModel.accountId, prompt: Text("User account UUID"))
-                .autocapitalization(.none)
-            
-            TextField("Rate Name", text: $formViewModel.rateName, prompt: Text("e.g., $1.25/hour"))
-        }
-        .listRowBackground(Color.glassBackground)
-    }
-    
     // MARK: - Helper Methods
     
     private func getZoneName(for session: ParkingSession) -> String {
@@ -1040,7 +278,6 @@ private struct ParkingSessionEventInnerView: View {
         // No zone name available
         return "Unknown Zone"
     }
-    
 }
 
 #Preview {
