@@ -20,6 +20,7 @@ struct OperatorZoneView: View {
     @State private var spaceNumber: String = ""
     @State private var vehiclePlate: String = ""
     @State private var vehicleState: String = ""
+    @EnvironmentObject var drawerViewModel: OperatorDrawerViewModel
     
     var body: some View {
         VStack(spacing: 0) {
@@ -151,6 +152,18 @@ struct OperatorZoneView: View {
         .adaptiveGlassmorphismNavigation()
         .adaptiveGlassmorphismBackground()
         .toolbar {
+            // Only show hamburger menu on iPhone (drawer is only on iPhone)
+            if UIDevice.current.userInterfaceIdiom == .phone {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(action: {
+                        drawerViewModel.openDrawer()
+                    }) {
+                        Image(systemName: "line.3.horizontal")
+                            .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
+                    }
+                }
+            }
+            
             ToolbarItem(placement: .navigationBarTrailing) {
                 Menu {
                     ForEach(SortOption.allCases, id: \.self) { option in
