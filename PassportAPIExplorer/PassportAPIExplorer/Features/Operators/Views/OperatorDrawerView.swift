@@ -22,6 +22,8 @@ struct OperatorDrawer<Content: View>: View {
     @State private var isDrawerDragging: Bool = false
     @State private var drawerDragTracking: CGFloat = 0
     
+    @State private var showingAddOperator = false
+    
     let content: Content
     let drawerWidth: CGFloat = 280
     let edgePanWidth: CGFloat = 30
@@ -76,7 +78,7 @@ struct OperatorDrawer<Content: View>: View {
                 // Header with safe area handling
                 DrawerHeader(
                     safeAreaTop: geometry.safeAreaInsets.top,
-                    onAddOperator: { /* Will be handled by OperatorListContent */ }
+                    onAddOperator: { showingAddOperator = true }
                 )
                 
                 // Operator list content
@@ -132,6 +134,11 @@ struct OperatorDrawer<Content: View>: View {
                 .shadow(color: Color.cyanAccent.opacity(0.15), radius: 25, x: 5, y: 0)
             )
             .edgesIgnoringSafeArea(.all)
+            .sheet(isPresented: $showingAddOperator) {
+                AddOperatorView { newOperator in
+                    viewModel.selectOperator(newOperator)
+                }
+            }
         }
     }
     

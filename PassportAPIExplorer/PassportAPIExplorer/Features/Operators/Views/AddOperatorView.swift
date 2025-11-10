@@ -14,6 +14,8 @@ struct AddOperatorView: View {
     @AppStorage("selectedThemeMode") private var selectedThemeMode: ThemeMode = .auto
     @Environment(\.colorScheme) var colorScheme
     
+    var onOperatorSaved: ((Operator) -> Void)?
+    
     @State private var viewModel: AddOperatorViewModel?
     
     var body: some View {
@@ -60,7 +62,8 @@ struct AddOperatorView: View {
                     
                     ToolbarItem(placement: .navigationBarTrailing) {
                         Button("Save") {
-                            if vm.saveOperator() {
+                            if let newOperator = vm.saveOperator() {
+                                onOperatorSaved?(newOperator)
                                 dismiss()
                             }
                         }
