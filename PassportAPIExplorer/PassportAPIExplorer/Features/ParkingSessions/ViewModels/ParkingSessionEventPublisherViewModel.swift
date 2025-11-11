@@ -18,12 +18,28 @@ final class ParkingSessionEventPublisherViewModel {
     var errorMessage: String?
     var successMessage: String?
     
-    private let apiService: PassportAPIService
+    private let apiServiceManager: APIServiceManager
     private let listViewModel: ParkingSessionsListViewModel
     
-    init(apiService: PassportAPIService, listViewModel: ParkingSessionsListViewModel) {
-        self.apiService = apiService
+    init(apiServiceManager: APIServiceManager, listViewModel: ParkingSessionsListViewModel) {
+        self.apiServiceManager = apiServiceManager
         self.listViewModel = listViewModel
+    }
+    
+    /// Get the appropriate API service for an operator
+    private func apiService(for operatorId: String, operators: [Operator]) -> PassportAPIService? {
+        // Find the operator to determine its environment
+        guard let op = operators.first(where: { $0.id == operatorId }) else {
+            print("⚠️ [ParkingSessionEventPublisher] Operator not found: \(operatorId)")
+            return nil
+        }
+        
+        guard let service = apiServiceManager.service(forOperator: op) else {
+            print("⚠️ [ParkingSessionEventPublisher] No API service available for operator \(op.name) (environment: \(op.environment?.rawValue ?? "unknown"))")
+            return nil
+        }
+        
+        return service
     }
     
     // MARK: - Event Publishing
@@ -47,7 +63,8 @@ final class ParkingSessionEventPublisherViewModel {
         eventFees: EventFees,
         rateName: String?,
         locationDetails: LocationDetails?,
-        payment: Payment?
+        payment: Payment?,
+        operators: [Operator]
     ) async throws {
         isLoading = true
         errorMessage = nil
@@ -81,6 +98,11 @@ final class ParkingSessionEventPublisherViewModel {
             locationDetails: locationDetails,
             payment: payment
         )
+        
+        guard let apiService = apiService(for: operatorId, operators: operators) else {
+            errorMessage = "No API service available for this operator's environment. Please configure credentials in Settings."
+            throw NSError(domain: "ParkingSession", code: -1, userInfo: [NSLocalizedDescriptionKey: "No API service available"])
+        }
         
         do {
             let success = try await apiService.publishParkingSessionEvent(
@@ -125,7 +147,8 @@ final class ParkingSessionEventPublisherViewModel {
         accountId: String?,
         rateName: String?,
         locationDetails: LocationDetails?,
-        payment: Payment?
+        payment: Payment?,
+        operators: [Operator]
     ) async throws {
         isLoading = true
         errorMessage = nil
@@ -158,6 +181,11 @@ final class ParkingSessionEventPublisherViewModel {
             payment: payment
         )
         
+        guard let apiService = apiService(for: session.operatorId, operators: operators) else {
+            errorMessage = "No API service available for this operator's environment. Please configure credentials in Settings."
+            throw NSError(domain: "ParkingSession", code: -1, userInfo: [NSLocalizedDescriptionKey: "No API service available"])
+        }
+        
         do {
             let success = try await apiService.publishParkingSessionEvent(
                 type: ParkingSessionEventType.extended.rawValue,
@@ -188,7 +216,8 @@ final class ParkingSessionEventPublisherViewModel {
         accountId: String?,
         rateName: String?,
         locationDetails: LocationDetails?,
-        payment: Payment?
+        payment: Payment?,
+        operators: [Operator]
     ) async throws {
         isLoading = true
         errorMessage = nil
@@ -220,6 +249,11 @@ final class ParkingSessionEventPublisherViewModel {
             locationDetails: locationDetails,
             payment: payment
         )
+        
+        guard let apiService = apiService(for: session.operatorId, operators: operators) else {
+            errorMessage = "No API service available for this operator's environment. Please configure credentials in Settings."
+            throw NSError(domain: "ParkingSession", code: -1, userInfo: [NSLocalizedDescriptionKey: "No API service available"])
+        }
         
         do {
             let success = try await apiService.publishParkingSessionEvent(

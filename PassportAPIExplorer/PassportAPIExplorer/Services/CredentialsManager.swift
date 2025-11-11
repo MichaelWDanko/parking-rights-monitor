@@ -18,12 +18,28 @@ class CredentialsManager {
     // MARK: - Public Methods
     
     /// Check if a value is a placeholder (contains angle brackets or common placeholder patterns)
+    /// Also validates that client secrets are the correct length (64 characters as required by API)
     private func isPlaceholder(_ value: String) -> Bool {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.contains("<") && trimmed.contains(">") ||
-               trimmed.lowercased().contains("your_") ||
-               trimmed.lowercased().contains("placeholder") ||
-               trimmed.isEmpty
+        let lowercased = trimmed.lowercased()
+        
+        // Check for common placeholder patterns
+        if trimmed.contains("<") && trimmed.contains(">") ||
+           lowercased.contains("your_") ||
+           lowercased.contains("placeholder") ||
+           lowercased == "test" ||
+           trimmed.isEmpty {
+            return true
+        }
+        
+        // Client secrets must be exactly 64 characters per API requirements
+        // Client IDs are 32 characters
+        // Reject suspiciously short values (likely test/placeholder values)
+        if trimmed.count < 10 {
+            return true
+        }
+        
+        return false
     }
     
     /// Get credentials for a specific environment
@@ -44,8 +60,14 @@ class CredentialsManager {
             print("📦 [CredentialsManager] Keychain Client Secret length: \(credentials.clientSecret.count) characters")
             
             // Validate Keychain credentials aren't placeholders
-            if isPlaceholder(credentials.clientId) || isPlaceholder(credentials.clientSecret) {
-                print("⚠️ [CredentialsManager] Keychain credentials contain placeholders - treating as invalid")
+            if isPlaceholder(credentials.clientId) {
+                print("⚠️ [CredentialsManager] Keychain Client ID is a placeholder: \"\(credentials.clientId)\"")
+                print("⚠️ [CredentialsManager] Treating Keychain credentials as invalid, will fall back to Secrets.json")
+                return nil
+            }
+            if isPlaceholder(credentials.clientSecret) {
+                print("⚠️ [CredentialsManager] Keychain Client Secret is a placeholder: \"\(credentials.clientSecret)\"")
+                print("⚠️ [CredentialsManager] Treating Keychain credentials as invalid, will fall back to Secrets.json")
                 return nil
             }
             

@@ -57,14 +57,20 @@ final class ParkingSessionEventFormViewModel {
     
     // MARK: - Dependencies
     
-    private let apiService: PassportAPIService
+    private let apiServiceManager: APIServiceManager
     private let eventPublisher: ParkingSessionEventPublisherViewModel
     
     // MARK: - Initialization
     
-    init(apiService: PassportAPIService, eventPublisher: ParkingSessionEventPublisherViewModel) {
-        self.apiService = apiService
+    init(apiServiceManager: APIServiceManager, eventPublisher: ParkingSessionEventPublisherViewModel) {
+        self.apiServiceManager = apiServiceManager
         self.eventPublisher = eventPublisher
+    }
+    
+    /// Get the appropriate API service for the selected operator
+    private func apiService(for operator: Operator?) -> PassportAPIService? {
+        guard let op = `operator` else { return nil }
+        return apiServiceManager.service(forOperator: op)
     }
     
     // MARK: - Computed Properties
@@ -160,6 +166,13 @@ final class ParkingSessionEventFormViewModel {
         Task {
             isLoadingZones = true
             do {
+                guard let apiService = apiService(for: op) else {
+                    print("⚠️ [ParkingSessionEventForm] No API service available for operator \(op.name)")
+                    availableZones = []
+                    isLoadingZones = false
+                    return
+                }
+                
                 // API call to fetch zones: GET /v3/shared/zones?operator_id={id}
                 availableZones = try await apiService.fetchZones(forOperatorId: op.id)
             } catch {
@@ -192,7 +205,7 @@ final class ParkingSessionEventFormViewModel {
     
     /// Submits the start session form by publishing a parking_session_started event.
     /// Builds the event payload from form fields and calls the API via the publisher ViewModel.
-    func submitStartSession() async throws {
+    func submitStartSession(operators: [Operator]) async throws {
         guard let op = selectedOperator else { return }
         
         // Determine zone ID type and value based on user's selection
@@ -226,7 +239,8 @@ final class ParkingSessionEventFormViewModel {
             eventFees: fees,
             rateName: rateName.isEmpty ? nil : rateName,
             locationDetails: nil,
-            payment: nil
+            payment: nil,
+            operators: operators
         )
         
         clearStartForm()
@@ -234,7 +248,7 @@ final class ParkingSessionEventFormViewModel {
         previewSessionId = ParkingSession.generateSessionId()
     }
     
-    func submitExtendSession(_ session: ParkingSession) async throws {
+    func submitExtendSession(_ session: ParkingSession, operators: [Operator]) async throws {
         let fees = EventFees(parkingFee: parkingFee, convenienceFee: convenienceFee, tax: tax, currencyCode: currencyCode)
         let totalFees = EventFees(parkingFee: totalParkingFee, convenienceFee: totalConvenienceFee, tax: totalTax, currencyCode: currencyCode)
         
@@ -246,11 +260,12 @@ final class ParkingSessionEventFormViewModel {
             accountId: accountId.isEmpty ? nil : accountId,
             rateName: rateName.isEmpty ? nil : rateName,
             locationDetails: nil,
-            payment: nil
+            payment: nil,
+            operators: operators
         )
     }
     
-    func submitStopSession(_ session: ParkingSession) async throws {
+    func submitStopSession(_ session: ParkingSession, operators: [Operator]) async throws {
         let fees = EventFees(parkingFee: parkingFee, convenienceFee: convenienceFee, tax: tax, currencyCode: currencyCode)
         let totalFees = EventFees(parkingFee: totalParkingFee, convenienceFee: totalConvenienceFee, tax: totalTax, currencyCode: currencyCode)
         
@@ -262,7 +277,8 @@ final class ParkingSessionEventFormViewModel {
             accountId: accountId.isEmpty ? nil : accountId,
             rateName: rateName.isEmpty ? nil : rateName,
             locationDetails: nil,
-            payment: nil
+            payment: nil,
+            operators: operators
         )
     }
     
