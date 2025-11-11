@@ -93,7 +93,7 @@ struct SettingsTabRootView: View {
                         Text("Version")
                             .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
                         Spacer()
-                        Text("1.0.0")
+                        Text("2.0.0")
                             .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                     }
                 }
