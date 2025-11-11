@@ -11,11 +11,11 @@ struct ParkingRightListView: View {
     
     @AppStorage("selectedThemeMode") private var selectedThemeMode: ThemeMode = .auto
     
-    @EnvironmentObject var passportAPIService: PassportAPIService
+    @EnvironmentObject var apiServiceManager: APIServiceManager
     @Environment(\.colorScheme) var colorScheme
 
     let zone: Zone?
-    let operatorId: String
+    let selectedOperator: Operator
     let initialSearchMode: SearchMode?
     let initialSpaceNumber: String?
     let initialVehiclePlate: String?
@@ -25,14 +25,14 @@ struct ParkingRightListView: View {
     
     init(
         zone: Zone?,
-        operatorId: String,
+        forOperator selectedOperator: Operator,
         initialSearchMode: SearchMode? = nil,
         initialSpaceNumber: String? = nil,
         initialVehiclePlate: String? = nil,
         initialVehicleState: String? = nil
     ) {
         self.zone = zone
-        self.operatorId = operatorId
+        self.selectedOperator = selectedOperator
         self.initialSearchMode = initialSearchMode
         self.initialSpaceNumber = initialSpaceNumber
         self.initialVehiclePlate = initialVehiclePlate
@@ -95,9 +95,9 @@ struct ParkingRightListView: View {
         .task {
             if viewModel == nil {
                 let newViewModel = ParkingRightListViewModel(
-                    passportAPIService: passportAPIService,
-                    op: operatorId,
-                    z: zone
+                    apiServiceManager: apiServiceManager,
+                    forOperator: selectedOperator,
+                    zone: zone
                 )
                 // Set initial search mode and values if provided
                 if let initialSearchMode = initialSearchMode {
@@ -197,8 +197,8 @@ struct FloatingFilterSection: View {
         operator_id: zdanko.id
     )
     
-    let mockAPIService = PreviewEnvironment.makePreviewService()
+    let mockAPIServiceManager = APIServiceManager(clientTraceId: "preview")
     
-    ParkingRightListView(zone: sampleZone, operatorId: zdanko.id)
-        .environmentObject(mockAPIService)
+    ParkingRightListView(zone: sampleZone, forOperator: zdanko)
+        .environmentObject(mockAPIServiceManager)
 }

@@ -10,6 +10,7 @@ import Foundation
 enum PreviewEnvironment {
     static func makePreviewService() -> PassportAPIService {
         let config = OAuthConfiguration(
+            baseURL: "https://example.com",
             tokenURL: URL(string: "https://example.com/token")!,
             client_id: "test",
             client_secret: "test",

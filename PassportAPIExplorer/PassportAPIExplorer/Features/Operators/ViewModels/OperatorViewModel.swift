@@ -25,11 +25,15 @@ extension OperatorZoneView {
         var sortOption: SortOption = .numberAscending
         
         private let selectedOperator: Operator
-        private var passportAPIService: PassportAPIService?
+        private let apiServiceManager: APIServiceManager
         
-        init(selectedOperator: Operator, passportAPIService: PassportAPIService) {
+        init(selectedOperator: Operator, apiServiceManager: APIServiceManager) {
             self.selectedOperator = selectedOperator
-            self.passportAPIService = passportAPIService
+            self.apiServiceManager = apiServiceManager
+        }
+        
+        private var passportAPIService: PassportAPIService? {
+            return apiServiceManager.service(forOperator: selectedOperator)
         }
         
         var filteredZones: [Zone] {

@@ -12,7 +12,7 @@ import SwiftData
 /// Replaces the complex OperatorDrawer + OperatorZoneView architecture
 struct OperatorAndZoneView: View {
     @Query private var operators: [Operator]
-    @EnvironmentObject var passportAPIService: PassportAPIService
+    @EnvironmentObject var apiServiceManager: APIServiceManager
     @Environment(\.colorScheme) var colorScheme
     @AppStorage("selectedThemeMode") private var selectedThemeMode: ThemeMode = .auto
     
@@ -87,12 +87,33 @@ struct OperatorAndZoneView: View {
                 }
             }
         }
+        .onChange(of: selectedOperator) { _, newOperator in
+            if let newOperator = newOperator {
+                viewModel = OperatorZoneView.OperatorViewModel(
+                    selectedOperator: newOperator,
+                    apiServiceManager: apiServiceManager
+                )
+                viewModel?.loadZones()
+            }
+        }
     }
     
     // MARK: - Zone Content View
     
     @ViewBuilder
     private func zoneContentView(for op: Operator) -> some View {
+        zoneContentBody(for: op)
+            .navigationTitle(op.name)
+            .navigationBarTitleDisplayMode(.inline)
+            .adaptiveGlassmorphismNavigation()
+            .adaptiveGlassmorphismBackground()
+            .toolbar {
+                zoneContentToolbar
+            }
+    }
+    
+    @ViewBuilder
+    private func zoneContentBody(for op: Operator) -> some View {
         VStack(spacing: 0) {
             // Header
             VStack(alignment: .leading, spacing: 4) {
@@ -170,7 +191,7 @@ struct OperatorAndZoneView: View {
                     ScrollView {
                         LazyVStack(spacing: 8) {
                             ForEach(viewModel?.filteredZones ?? []) { zone in
-                                ZoneCardView(zone: zone, operatorId: op.id, colorScheme: colorScheme)
+                                ZoneCardView(zone: zone, selectedOperator: op, colorScheme: colorScheme)
                             }
                         }
                         .padding(.horizontal, 16)
@@ -201,80 +222,59 @@ struct OperatorAndZoneView: View {
                     spaceNumber: $spaceNumber,
                     vehiclePlate: $vehiclePlate,
                     vehicleState: $vehicleState,
-                    operatorId: op.id,
-                    colorScheme: colorScheme,
-                    passportAPIService: passportAPIService
+                    selectedOperator: op,
+                    colorScheme: colorScheme
                 )
             }
         }
-        .navigationTitle(op.name)
-        .navigationBarTitleDisplayMode(.inline)
-        .adaptiveGlassmorphismNavigation()
-        .adaptiveGlassmorphismBackground()
-        .toolbar {
-            // Hamburger menu on leading side - only show when drawer is closed
-            if !isOperatorListVisible {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button(action: {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                            isOperatorListVisible = true
-                        }
-                    }) {
-                        Image(systemName: "line.3.horizontal")
-                            .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
+    }
+    
+    @ToolbarContentBuilder
+    private var zoneContentToolbar: some ToolbarContent {
+        // Hamburger menu on leading side - only show when drawer is closed
+        if !isOperatorListVisible {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button(action: {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        isOperatorListVisible = true
                     }
+                }) {
+                    Image(systemName: "line.3.horizontal")
+                        .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
                 }
             }
-            
-            // Sort/refresh menu on trailing side - only show when drawer is closed
-            if !isOperatorListVisible {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Menu {
-                        ForEach(SortOption.allCases, id: \.self) { option in
-                            Button(action: {
-                                viewModel?.sortOption = option
-                            }) {
-                                HStack {
-                                    Text(option.rawValue)
-                                    if viewModel?.sortOption == option {
-                                        Image(systemName: "checkmark")
-                                    }
+        }
+        
+        // Sort/refresh menu on trailing side - only show when drawer is closed
+        if !isOperatorListVisible {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Menu {
+                    ForEach(SortOption.allCases, id: \.self) { option in
+                        Button(action: {
+                            viewModel?.sortOption = option
+                        }) {
+                            HStack {
+                                Text(option.rawValue)
+                                if viewModel?.sortOption == option {
+                                    Image(systemName: "checkmark")
                                 }
                             }
                         }
-                        
-                        Divider()
-                        
-                        Button(action: {
-                            Task {
-                                await refreshZones()
-                            }
-                        }) {
-                            Label("Refresh", systemImage: "arrow.clockwise")
-                        }
-                    } label: {
-                        Image(systemName: "line.3.horizontal.decrease.circle")
-                            .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
                     }
+                    
+                    Divider()
+                    
+                    Button(action: {
+                        Task {
+                            await refreshZones()
+                        }
+                    }) {
+                        Label("Refresh", systemImage: "arrow.clockwise")
+                    }
+                } label: {
+                    Image(systemName: "line.3.horizontal.decrease.circle")
+                        .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
                 }
-            }
-        }
-        .onChange(of: selectedOperator) { _, newOperator in
-            if let newOperator = newOperator {
-                viewModel = OperatorZoneView.OperatorViewModel(
-                    selectedOperator: newOperator,
-                    passportAPIService: passportAPIService
-                )
-                viewModel?.loadZones()
-            }
-        }
-        .onAppear {
-            if viewModel == nil, let selectedOperator = selectedOperator {
-                viewModel = OperatorZoneView.OperatorViewModel(
-                    selectedOperator: selectedOperator,
-                    passportAPIService: passportAPIService
-                )
-                viewModel?.loadZones()
             }
         }
     }
@@ -476,7 +476,7 @@ struct OperatorAndZoneView: View {
 #Preview {
     NavigationStack {
         OperatorAndZoneView()
-            .environmentObject(PreviewEnvironment.makePreviewService())
+            .environmentObject(APIServiceManager(clientTraceId: "preview"))
     }
     .modelContainer(for: Operator.self, inMemory: true)
 }

@@ -14,6 +14,7 @@ import Combine
 /// This struct holds the credentials needed to obtain an access token using the
 /// OAuth 2.0 client credentials flow (no user interaction required).
 struct OAuthConfiguration {
+    let baseURL: String
     let tokenURL: URL
     let client_id: String
     let client_secret: String
@@ -26,20 +27,107 @@ enum SecretsError: Error { case fileMissing, decodeFailed }
 /// Loads OAuth credentials from a Secrets.json file in the app bundle.
 /// This keeps sensitive credentials out of source code (Secrets.json is gitignored).
 enum SecretsLoader {
-    struct Secrets: Decodable { let client_id: String; let client_secret: String }
+    struct EnvironmentCredentials: Decodable {
+        let client_id: String
+        let client_secret: String
+    }
+    
+    struct Secrets: Decodable {
+        let production: EnvironmentCredentials
+        let staging: EnvironmentCredentials?
+        let development: EnvironmentCredentials?
+    }
 
-    /// Loads and decodes the Secrets.json file containing OAuth credentials.
+    /// Loads and decodes the Secrets.json file containing OAuth credentials for all environments.
     /// Throws an error if the file is missing or invalid JSON.
     static func load() throws -> Secrets {
         guard let url = Bundle.main.url(forResource: "Secrets", withExtension: "json") else {
-            throw NSError(domain: "Secrets", code: -1, userInfo: [NSLocalizedDescriptionKey: "Secrets.json file not found. Please create a Secrets.json file with your client_id and client_secret."])
+            throw NSError(domain: "Secrets", code: -1, userInfo: [NSLocalizedDescriptionKey: "Secrets.json file not found. Please create a Secrets.json file with credentials for each environment."])
         }
         do {
             let data = try Data(contentsOf: url)
-            return try JSONDecoder().decode(Secrets.self, from: data)
+            
+            // Log raw JSON for debugging (redact secrets)
+            if let jsonString = String(data: data, encoding: .utf8) {
+                print("📄 [SecretsLoader] Raw JSON file contents:")
+                // Redact actual secrets but show structure
+                let redacted = jsonString
+                    .replacingOccurrences(of: #""client_id"\s*:\s*"([^"]+)""#, with: #""client_id": "[REDACTED]"#, options: .regularExpression)
+                    .replacingOccurrences(of: #"client_secret"\s*:\s*"([^"]+)""#, with: #"client_secret": "[REDACTED]"#, options: .regularExpression)
+                print("📄 [SecretsLoader] \(redacted)")
+            }
+            
+            let secrets = try JSONDecoder().decode(Secrets.self, from: data)
+            
+            // Log decoded structure
+            print("📄 [SecretsLoader] Decoded Secrets structure:")
+            print("📄 [SecretsLoader] - Production: \(secrets.production.client_id.prefix(8))... (secret length: \(secrets.production.client_secret.count))")
+            if let staging = secrets.staging {
+                print("📄 [SecretsLoader] - Staging: \(staging.client_id.prefix(8))... (secret: \"\(staging.client_secret)\")")
+            } else {
+                print("📄 [SecretsLoader] - Staging: nil")
+            }
+            if let dev = secrets.development {
+                print("📄 [SecretsLoader] - Development: \(dev.client_id.prefix(8))... (secret length: \(dev.client_secret.count))")
+            } else {
+                print("📄 [SecretsLoader] - Development: nil")
+            }
+            
+            return secrets
         } catch {
-            throw NSError(domain: "Secrets", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to decode Secrets.json: \(error.localizedDescription). Make sure the file contains valid JSON with client_id and client_secret fields."])
+            print("❌ [SecretsLoader] Decoding error: \(error)")
+            if let decodingError = error as? DecodingError {
+                switch decodingError {
+                case .keyNotFound(let key, let context):
+                    print("❌ [SecretsLoader] Missing key: \(key) at \(context.codingPath)")
+                case .typeMismatch(let type, let context):
+                    print("❌ [SecretsLoader] Type mismatch: expected \(type) at \(context.codingPath)")
+                case .valueNotFound(let type, let context):
+                    print("❌ [SecretsLoader] Value not found: \(type) at \(context.codingPath)")
+                case .dataCorrupted(let context):
+                    print("❌ [SecretsLoader] Data corrupted at \(context.codingPath): \(context.debugDescription)")
+                @unknown default:
+                    print("❌ [SecretsLoader] Unknown decoding error")
+                }
+            }
+            throw NSError(domain: "Secrets", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to decode Secrets.json: \(error.localizedDescription). Make sure the file contains valid JSON with production, staging, and development credentials."])
         }
+    }
+    
+    /// Get credentials for a specific environment from Secrets.json
+    static func credentials(for environment: OperatorEnvironment) throws -> EnvironmentCredentials? {
+        print("📄 [SecretsLoader] Loading credentials for \(environment.rawValue)...")
+        let secrets = try load()
+        
+        let result: EnvironmentCredentials?
+        switch environment {
+        case .production:
+            result = secrets.production
+            print("📄 [SecretsLoader] Production credentials found: \(result != nil)")
+        case .staging:
+            result = secrets.staging
+            print("📄 [SecretsLoader] Staging credentials found: \(result != nil)")
+        case .development:
+            result = secrets.development
+            print("📄 [SecretsLoader] Development credentials found: \(result != nil)")
+        }
+        
+        if let creds = result {
+            print("📄 [SecretsLoader] Raw Client ID from JSON: \"\(creds.client_id)\"")
+            print("📄 [SecretsLoader] Raw Client ID length: \(creds.client_id.count) characters")
+            print("📄 [SecretsLoader] Raw Client ID bytes: \(creds.client_id.data(using: .utf8)?.map { String(format: "%02x", $0) }.joined(separator: " ") ?? "N/A")")
+            print("📄 [SecretsLoader] Client ID trimmed: \"\(creds.client_id.trimmingCharacters(in: .whitespacesAndNewlines))\"")
+            print("📄 [SecretsLoader] Client ID trimmed length: \(creds.client_id.trimmingCharacters(in: .whitespacesAndNewlines).count) characters")
+            
+            print("📄 [SecretsLoader] Raw Client Secret from JSON: \"\(creds.client_secret)\"")
+            print("📄 [SecretsLoader] Raw Client Secret length: \(creds.client_secret.count) characters")
+            print("📄 [SecretsLoader] Client Secret trimmed: \"\(creds.client_secret.trimmingCharacters(in: .whitespacesAndNewlines))\"")
+            print("📄 [SecretsLoader] Client Secret trimmed length: \(creds.client_secret.trimmingCharacters(in: .whitespacesAndNewlines).count) characters")
+        } else {
+            print("📄 [SecretsLoader] No credentials found for \(environment.rawValue)")
+        }
+        
+        return result
     }
 }
 
@@ -186,6 +274,15 @@ private actor TokenManager {
     /// Uses OAuth 2.0 Client Credentials flow: sends client_id and client_secret
     /// in the request body as application/x-www-form-urlencoded data.
     private func fetchNewTokenResponse() async throws -> TokenResponse {
+        print("🔑 [OAuth] Preparing token request...")
+        print("🔑 [OAuth] Token URL: \(config.tokenURL)")
+        print("🔑 [OAuth] Client ID from config: \"\(config.client_id)\"")
+        print("🔑 [OAuth] Client ID length: \(config.client_id.count) characters")
+        print("🔑 [OAuth] Client ID contains only alphanumeric: \(config.client_id.allSatisfy { $0.isLetter || $0.isNumber })")
+        print("🔑 [OAuth] Client ID matches pattern [A-Za-z0-9]{32}: \(NSPredicate(format: "SELF MATCHES %@", "^[A-Za-z0-9]{32}$").evaluate(with: config.client_id))")
+        print("🔑 [OAuth] Client Secret length: \(config.client_secret.count) characters")
+        print("🔑 [OAuth] Audience: \(config.audience)")
+        
         // Build form-encoded request body for OAuth 2.0 client credentials flow
         // Note: credentials go in the BODY, not as Basic Auth headers
         let items = [
@@ -194,7 +291,22 @@ private actor TokenManager {
             URLQueryItem(name: "client_id", value: config.client_id),
             URLQueryItem(name: "client_secret", value: config.client_secret)
         ].filter { ($0.value ?? "").isEmpty == false }
+        
+        print("🔑 [OAuth] Form items count: \(items.count)")
+        for item in items {
+            if item.name == "client_id" {
+                print("🔑 [OAuth] Form item '\(item.name)': \"\(item.value ?? "")\" (length: \(item.value?.count ?? 0))")
+            } else if item.name == "client_secret" {
+                print("🔑 [OAuth] Form item '\(item.name)': [REDACTED] (length: \(item.value?.count ?? 0))")
+            } else {
+                print("🔑 [OAuth] Form item '\(item.name)': \(item.value ?? "")")
+            }
+        }
+        
         var comps = URLComponents(); comps.queryItems = items
+        let requestBody = comps.query ?? ""
+        print("🔑 [OAuth] Request body (query string): \(requestBody)")
+        print("🔑 [OAuth] Request body length: \(requestBody.count) characters")
 
         // Create POST request to token endpoint
         var req = URLRequest(url: config.tokenURL)
@@ -202,6 +314,11 @@ private actor TokenManager {
         req.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
         req.setValue(config.clientTraceId, forHTTPHeaderField: "Passport-Labs-Client-Trace-Id")
         req.httpBody = comps.query?.data(using: .utf8)
+        
+        if let bodyData = req.httpBody, let bodyString = String(data: bodyData, encoding: .utf8) {
+            print("🔑 [OAuth] Final request body (UTF-8): \(bodyString)")
+            print("🔑 [OAuth] Final request body length: \(bodyData.count) bytes")
+        }
 
         let (data, resp) = try await session.data(for: req)
         guard let http = resp as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
@@ -273,12 +390,13 @@ final class PassportAPIService: ObservableObject {
     private let session: URLSession
     private let clientTraceId: String
     /// Base URL for all Passport API endpoints
-    private let baseURL = "https://api.us.passportinc.com"
+    private let baseURL: String
     
     init(config: OAuthConfiguration, session: URLSession = .shared, clientTraceId: String = "danko-test") {
         self.tokenManager = TokenManager(config: config, session: session)
         self.session = session
         self.clientTraceId = clientTraceId
+        self.baseURL = config.baseURL
     }
     
     // MARK: - Public API Methods
@@ -296,11 +414,14 @@ final class PassportAPIService: ObservableObject {
     /// Debug method to test OAuth token endpoint and see raw response
     @MainActor
     func debugTokenEndpoint() async throws -> String {
-        let secrets = try SecretsLoader.load()
+        guard let productionCreds = try SecretsLoader.credentials(for: .production) else {
+            throw NSError(domain: "Debug", code: -1, userInfo: [NSLocalizedDescriptionKey: "No production credentials found"])
+        }
         let config = OAuthConfiguration(
+            baseURL: "https://api.us.passportinc.com",
             tokenURL: URL(string: "https://api.us.passportinc.com/v3/shared/access-tokens")!,
-            client_id: secrets.client_id,
-            client_secret: secrets.client_secret,
+            client_id: productionCreds.client_id,
+            client_secret: productionCreds.client_secret,
             audience: "public.api.passportinc.com",
             clientTraceId: "danko-test"
         )

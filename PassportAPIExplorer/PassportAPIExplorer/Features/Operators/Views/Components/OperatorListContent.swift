@@ -55,7 +55,7 @@ struct OperatorListContent: View {
                 List {
                     ForEach(operators) { op in
                         OperatorListCard(
-                            operator: op,
+                            op: op,
                             colorScheme: colorScheme,
                             isSelected: selectedOperatorId == op.id,
                             onSelect: {
@@ -155,7 +155,7 @@ struct OperatorListContent: View {
 
 /// Individual operator card for the list
 struct OperatorListCard: View {
-    let `operator`: Operator
+    let op: Operator
     let colorScheme: ColorScheme
     let isSelected: Bool
     let onSelect: () -> Void
@@ -170,19 +170,19 @@ struct OperatorListCard: View {
                             .foregroundColor(Color.adaptiveCyanAccent(colorScheme == .dark))
                     }
                     
-                    Text(`operator`.name)
+                    Text(op.name)
                         .font(.headline)
                         .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
                     Spacer()
-                    Text(`operator`.environment?.rawValue.capitalized ?? "Unknown")
+                    Text(op.environment?.rawValue.capitalized ?? "Unknown")
                         .font(.caption)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
-                        .background(environmentColor(for: `operator`.environment ?? .production))
+                        .background(environmentColor(for: op.environment ?? .production))
                         .foregroundColor(.white)
                         .cornerRadius(8)
                 }
-                Text("ID: \(`operator`.id)")
+                Text("ID: \(op.id)")
                     .font(.caption)
                     .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
             }
