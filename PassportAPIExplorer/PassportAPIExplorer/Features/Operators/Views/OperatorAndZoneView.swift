@@ -52,8 +52,11 @@ struct OperatorAndZoneView: View {
                     .opacity(0.3)
                     .ignoresSafeArea()
                     .onTapGesture {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                            isOperatorListVisible = false
+                        // Only allow closing if an operator is selected
+                        if selectedOperator != nil {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                isOperatorListVisible = false
+                            }
                         }
                     }
             }
@@ -308,8 +311,11 @@ struct OperatorAndZoneView: View {
                         
                         // Close button
                         Button(action: {
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                                isOperatorListVisible = false
+                            // Only allow closing if an operator is selected
+                            if selectedOperator != nil {
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                    isOperatorListVisible = false
+                                }
                             }
                         }) {
                             ZStack {
@@ -322,6 +328,8 @@ struct OperatorAndZoneView: View {
                                     .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
                             }
                         }
+                        .disabled(selectedOperator == nil)
+                        .opacity(selectedOperator == nil ? 0.5 : 1.0)
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 20)
@@ -423,8 +431,8 @@ struct OperatorAndZoneView: View {
     private var closeDrawerGesture: some Gesture {
         DragGesture(minimumDistance: 10)
             .onChanged { value in
-                // Only respond to left swipe (closing)
-                if value.translation.width < 0 {
+                // Only respond to left swipe (closing) if an operator is selected
+                if value.translation.width < 0 && selectedOperator != nil {
                     isDragging = true
                     // Start from 0 (fully open) and move left (negative)
                     let clamped = max(value.translation.width, -operatorListWidth)
@@ -432,20 +440,23 @@ struct OperatorAndZoneView: View {
                 }
             }
             .onEnded { value in
-                let dx = value.translation.width
-                let vx = value.velocity.width
-                
-                // Should close if dragged far enough or fast enough
-                let shouldClose = dx < -operatorListWidth * 0.4 || vx < -800
-                
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                    if shouldClose {
-                        isOperatorListVisible = false
-                        dragOffset = -operatorListWidth
-                    } else {
-                        // Snap back to open
-                        isOperatorListVisible = true
-                        dragOffset = 0
+                // Only close if an operator is selected
+                if selectedOperator != nil {
+                    let dx = value.translation.width
+                    let vx = value.velocity.width
+                    
+                    // Should close if dragged far enough or fast enough
+                    let shouldClose = dx < -operatorListWidth * 0.4 || vx < -800
+                    
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        if shouldClose {
+                            isOperatorListVisible = false
+                            dragOffset = -operatorListWidth
+                        } else {
+                            // Snap back to open
+                            isOperatorListVisible = true
+                            dragOffset = 0
+                        }
                     }
                 }
                 
