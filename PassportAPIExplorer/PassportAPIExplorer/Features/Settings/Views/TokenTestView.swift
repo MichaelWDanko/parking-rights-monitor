@@ -14,7 +14,12 @@ struct TokenTestView: View {
     @AppStorage("selectedThemeMode") private var selectedThemeMode: ThemeMode = .auto
     @Environment(\.colorScheme) var colorScheme
 
-    @EnvironmentObject var passportAPIService: PassportAPIService
+    @EnvironmentObject var apiServiceManager: APIServiceManager
+    
+    // Use production service for token testing
+    private var passportAPIService: PassportAPIService? {
+        apiServiceManager.service(for: .production)
+    }
 
     var body: some View {
         Form {
@@ -111,8 +116,16 @@ struct TokenTestView: View {
         errorMessage = nil
         tokenResponse = nil
         
+        guard let service = passportAPIService else {
+            await MainActor.run {
+                self.errorMessage = "Production environment not configured. Please add credentials in API Credentials settings."
+                self.isLoading = false
+            }
+            return
+        }
+        
         do {
-            let response = try await passportAPIService.getTokenResponse()
+            let response = try await service.getTokenResponse()
             await MainActor.run {
                 self.tokenResponse = response
                 self.isLoading = false
@@ -130,7 +143,7 @@ struct TokenTestView: View {
 struct TokenTestView_Previews: PreviewProvider {
     static var previews: some View {
         TokenTestView()
-            .environmentObject(PreviewEnvironment.makePreviewService())
+            .environmentObject(APIServiceManager(clientTraceId: "preview"))
     }
 }
 #endif

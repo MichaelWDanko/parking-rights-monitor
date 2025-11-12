@@ -53,25 +53,25 @@ class OperatorDataService {
         }
     }
     
-    func updateOperator(_ operator: Operator, name: String, id: String, environment: OperatorEnvironment) {
-        `operator`.name = name
-        `operator`.id = id
-        `operator`.environment = environment
+    func updateOperator(_ op: Operator, name: String, id: String, environment: OperatorEnvironment) {
+        op.name = name
+        op.id = id
+        op.environment = environment
         
         do {
             try modelContext.save()
-            print("✅ Successfully updated operator: \(`operator`.name) (ID: \(`operator`.id))")
+            print("✅ Successfully updated operator: \(op.name) (ID: \(op.id))")
             print("☁️ Changes will sync to iCloud automatically")
         } catch {
             print("❌ Error updating operator: \(error)")
         }
     }
     
-    func deleteOperator(_ operator: Operator) {
+    func deleteOperator(_ op: Operator) {
         do {
-            let operatorName = `operator`.name
-            let operatorId = `operator`.id
-            modelContext.delete(`operator`)
+            let operatorName = op.name
+            let operatorId = op.id
+            modelContext.delete(op)
             try modelContext.save()
             print("✅ Successfully deleted operator: \(operatorName) (ID: \(operatorId))")
             print("☁️ Deletion will sync to iCloud automatically")
@@ -87,20 +87,39 @@ class OperatorDataService {
         
         // Only migrate if no operators exist
         if existingOperators.isEmpty {
-            // Add the default operator from mock data
-            let defaultOperator = Operator(
-                name: "zDanko Parking",
-                id: "43c401c0-a17e-40e5-ae26-4f5f205bf063",
-                environment: .production
-            )
+            print("🔄 [MIGRATION] No operators found, creating default operators for all environments...")
+            
+            // Create default operators for each environment
+            let defaultOperators = [
+                Operator(
+                    name: "zDanko Parking",
+                    id: "43c401c0-a17e-40e5-ae26-4f5f205bf063",
+                    environment: .production
+                ),
+                Operator(
+                    name: "zDanko Parking (Staging)",
+                    id: "20c33f62-29e5-4e38-a107-0c287d0fd823",
+                    environment: .staging
+                ),
+                Operator(
+                    name: "zDanko Parking (Dev)",
+                    id: "5e0a5b4b-05dd-4007-811d-b2ddfba268f4",
+                    environment: .development
+                )
+            ]
             
             do {
-                modelContext.insert(defaultOperator)
+                for op in defaultOperators {
+                    modelContext.insert(op)
+                    print("✅ [MIGRATION] Added \(op.name) (\(op.environment?.rawValue ?? "unknown"))")
+                }
                 try modelContext.save()
-                print("Migrated default operator to SwiftData")
+                print("✅ [MIGRATION] Successfully migrated \(defaultOperators.count) default operators to SwiftData")
             } catch {
-                print("Error migrating default operator: \(error)")
+                print("❌ [MIGRATION] Error migrating default operators: \(error)")
             }
+        } else {
+            print("ℹ️ [MIGRATION] Skipping migration - \(existingOperators.count) operator(s) already exist")
         }
     }
 }

@@ -12,15 +12,15 @@ import SwiftData
 /// Uses MVVM pattern: delegates business logic to ViewModels, focuses on UI presentation.
 struct ParkingSessionEventView: View {
     @Environment(\.modelContext) private var modelContext
-    @EnvironmentObject var apiService: PassportAPIService
+    @EnvironmentObject var apiServiceManager: APIServiceManager
     var body: some View {
-        ParkingSessionEventInnerView(apiService: apiService, modelContext: modelContext)
+        ParkingSessionEventInnerView(apiServiceManager: apiServiceManager, modelContext: modelContext)
     }
 }
 
 private struct ParkingSessionEventInnerView: View {
     @Environment(\.modelContext) private var modelContext
-    @EnvironmentObject var apiService: PassportAPIService
+    @EnvironmentObject var apiServiceManager: APIServiceManager
     @State private var listViewModel: ParkingSessionsListViewModel
     @State private var eventPublisher: ParkingSessionEventPublisherViewModel
     @State private var formViewModel: ParkingSessionEventFormViewModel
@@ -41,12 +41,12 @@ private struct ParkingSessionEventInnerView: View {
         case stop = "Stop"
     }
     
-    init(apiService: PassportAPIService, modelContext: ModelContext) {
+    init(apiServiceManager: APIServiceManager, modelContext: ModelContext) {
         let listVM = ParkingSessionsListViewModel(modelContext: modelContext)
         _listViewModel = State(initialValue: listVM)
-        let eventPub = ParkingSessionEventPublisherViewModel(apiService: apiService, listViewModel: listVM)
+        let eventPub = ParkingSessionEventPublisherViewModel(apiServiceManager: apiServiceManager, listViewModel: listVM)
         _eventPublisher = State(initialValue: eventPub)
-        _formViewModel = State(initialValue: ParkingSessionEventFormViewModel(apiService: apiService, eventPublisher: eventPub))
+        _formViewModel = State(initialValue: ParkingSessionEventFormViewModel(apiServiceManager: apiServiceManager, eventPublisher: eventPub))
     }
     
     var body: some View {
@@ -110,7 +110,7 @@ private struct ParkingSessionEventInnerView: View {
                                         Button(action: {
                                             Task {
                                                 do {
-                                                    try await formViewModel.submitExtendSession(session)
+                                                    try await formViewModel.submitExtendSession(session, operators: operators)
                                                     selectedSession = nil
                                                 } catch {}
                                             }
@@ -154,7 +154,7 @@ private struct ParkingSessionEventInnerView: View {
                                         Button(action: {
                                             Task {
                                                 do {
-                                                    try await formViewModel.submitStopSession(session)
+                                                    try await formViewModel.submitStopSession(session, operators: operators)
                                                     selectedSession = nil
                                                 } catch {}
                                             }
@@ -193,7 +193,7 @@ private struct ParkingSessionEventInnerView: View {
                             Button(action: {
                                 Task {
                                     do {
-                                        try await formViewModel.submitStartSession()
+                                        try await formViewModel.submitStartSession(operators: operators)
                                         showingStartForm = false
                                     } catch {}
                                 }
@@ -285,11 +285,11 @@ private struct ParkingSessionEventInnerView: View {
         for: ParkingSession.self, Operator.self,
         configurations: ModelConfiguration(isStoredInMemoryOnly: true)
     )
-    let service = PreviewEnvironment.makePreviewService()
+    let apiServiceManager = APIServiceManager(clientTraceId: "preview")
     
     return NavigationStack {
         ParkingSessionEventView()
     }
-    .environmentObject(service)
+    .environmentObject(apiServiceManager)
     .modelContainer(container)
 }

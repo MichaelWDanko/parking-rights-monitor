@@ -32,9 +32,9 @@ class OperatorDrawerViewModel: ObservableObject {
     }
     
     /// Selects an operator and closes the drawer
-    /// - Parameter operator: The operator to select
-    func selectOperator(_ operator: Operator) {
-        selectedOperator = `operator`
+    /// - Parameter op: The operator to select
+    func selectOperator(_ op: Operator) {
+        selectedOperator = op
         closeDrawer()
     }
 }

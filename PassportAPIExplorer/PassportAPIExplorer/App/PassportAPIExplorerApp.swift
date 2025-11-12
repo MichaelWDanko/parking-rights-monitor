@@ -14,8 +14,9 @@ import SwiftData
 struct PassportAPIExplorerApp: App {
     
     let modelContainer: ModelContainer
-    /// Shared API service instance injected into the view hierarchy via @EnvironmentObject
-    private let passportAPIService: PassportAPIService
+    /// Shared API service manager instance injected into the view hierarchy via @EnvironmentObject
+    /// Manages separate PassportAPIService instances for each environment
+    private let apiServiceManager: APIServiceManager
     
     init() {
         do {
@@ -59,24 +60,17 @@ struct PassportAPIExplorerApp: App {
             }
             fatalError("Could not initialize ModelContainer: \(error)")
         }
-        // Initialize shared PassportAPIService singleton for dependency injection
-        // This service handles all API communication and OAuth authentication
-        let secrets = try! SecretsLoader.load()
-        let config = OAuthConfiguration(
-            tokenURL: URL(string: "https://api.us.passportinc.com/v3/shared/access-tokens")!,
-            client_id: secrets.client_id,
-            client_secret: secrets.client_secret,
-            audience: "public.api.passportinc.com",
-            clientTraceId: "danko-test"
-        )
-        self.passportAPIService = PassportAPIService(config: config)
+        // Initialize shared APIServiceManager for multi-environment support
+        // This manager creates and maintains PassportAPIService instances per environment
+        self.apiServiceManager = APIServiceManager(clientTraceId: "danko-test")
+        print("✅ [SUCCESS] APIServiceManager initialized with multi-environment support")
     }
 
     var body: some Scene {
         WindowGroup {
             ContentView()
-                // Inject PassportAPIService into the view hierarchy via @EnvironmentObject
-                .environmentObject(passportAPIService)
+                // Inject APIServiceManager into the view hierarchy via @EnvironmentObject
+                .environmentObject(apiServiceManager)
         }
         // Provide SwiftData ModelContainer to all views via @Environment(\.modelContext)
         .modelContainer(modelContainer)

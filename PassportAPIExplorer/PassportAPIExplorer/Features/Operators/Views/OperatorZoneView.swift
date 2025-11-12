@@ -10,8 +10,9 @@ import SwiftUI
 struct OperatorZoneView: View {
     var selectedOperator: Operator
     var selectedZone: Zone?
+    var drawerViewModel: OperatorDrawerViewModel?
     
-    @EnvironmentObject var passportAPIService: PassportAPIService
+    @EnvironmentObject var apiServiceManager: APIServiceManager
     @AppStorage("selectedThemeMode") private var selectedThemeMode: ThemeMode = .auto
     @Environment(\.colorScheme) var colorScheme
     @State private var viewModel: OperatorViewModel?
@@ -20,7 +21,6 @@ struct OperatorZoneView: View {
     @State private var spaceNumber: String = ""
     @State private var vehiclePlate: String = ""
     @State private var vehicleState: String = ""
-    @EnvironmentObject var drawerViewModel: OperatorDrawerViewModel
     
     var body: some View {
         VStack(spacing: 0) {
@@ -97,15 +97,13 @@ struct OperatorZoneView: View {
                         actionTitle: "Refresh",
                         action: {
                             viewModel?.loadZones()
-                        },
-                        secondaryActionTitle: "Search",
-                        secondaryAction: { viewModel?.loadZones() }
+                        }
                     )
                 } else {
                     ScrollView {
                         LazyVStack(spacing: 8) {
                             ForEach(viewModel?.filteredZones ?? []) { zone in
-                                ZoneCardView(zone: zone, operatorId: selectedOperator.id, colorScheme: colorScheme)
+                                ZoneCardView(zone: zone, selectedOperator: selectedOperator, colorScheme: colorScheme)
                             }
                         }
                         .padding(.horizontal, 16)
@@ -140,9 +138,8 @@ struct OperatorZoneView: View {
                     spaceNumber: $spaceNumber,
                     vehiclePlate: $vehiclePlate,
                     vehicleState: $vehicleState,
-                    operatorId: selectedOperator.id,
-                    colorScheme: colorScheme,
-                    passportAPIService: passportAPIService
+                    selectedOperator: selectedOperator,
+                    colorScheme: colorScheme
                 )
             }
         }
@@ -153,7 +150,7 @@ struct OperatorZoneView: View {
         .adaptiveGlassmorphismBackground()
         .toolbar {
             // Only show hamburger menu on iPhone (drawer is only on iPhone)
-            if UIDevice.current.userInterfaceIdiom == .phone {
+            if UIDevice.current.userInterfaceIdiom == .phone, let drawerViewModel = drawerViewModel {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button(action: {
                         drawerViewModel.openDrawer()
@@ -198,7 +195,7 @@ struct OperatorZoneView: View {
             if viewModel == nil {
                 viewModel = OperatorViewModel(
                     selectedOperator: selectedOperator,
-                    passportAPIService: passportAPIService
+                    apiServiceManager: apiServiceManager
                 )
             }
             viewModel?.loadZones()
@@ -214,13 +211,13 @@ struct OperatorZoneView: View {
 
 struct ZoneCardView: View {
     let zone: Zone
-    let operatorId: String
+    let selectedOperator: Operator
     let colorScheme: ColorScheme
     
     @State private var isPressed = false
     
     var body: some View {
-        NavigationLink(destination: ParkingRightListView(zone: zone, operatorId: operatorId)) {
+        NavigationLink(destination: ParkingRightListView(zone: zone, forOperator: selectedOperator)) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(zone.name)
@@ -316,10 +313,10 @@ struct FloatingZoneFilterSection: View {
 }
 
 #Preview {
-    let mockAPIService = PreviewEnvironment.makePreviewService()
+    let mockAPIServiceManager = APIServiceManager(clientTraceId: "preview")
     
-    OperatorZoneView(selectedOperator: zdanko)
-        .environmentObject(mockAPIService)
+    OperatorZoneView(selectedOperator: zdanko, drawerViewModel: nil)
+        .environmentObject(mockAPIServiceManager)
 }
 
 // Operator Search Section Component
@@ -329,9 +326,8 @@ struct OperatorSearchSection: View {
     @Binding var spaceNumber: String
     @Binding var vehiclePlate: String
     @Binding var vehicleState: String
-    let operatorId: String
+    let selectedOperator: Operator
     let colorScheme: ColorScheme
-    let passportAPIService: PassportAPIService
     
     private var canSearch: Bool {
         switch searchMode {
@@ -390,7 +386,7 @@ struct OperatorSearchSection: View {
             NavigationLink(
                 destination: ParkingRightListView(
                     zone: nil,
-                    operatorId: operatorId,
+                    forOperator: selectedOperator,
                     initialSearchMode: .spaceVehicleBased,
                     initialSpaceNumber: spaceNumber,
                     initialVehiclePlate: vehiclePlate,

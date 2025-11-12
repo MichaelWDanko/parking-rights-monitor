@@ -19,8 +19,8 @@ class ParkingRightListViewModel {
     var isLoadingRights: Bool = false
     var rightsError: String?
     
-    private let passportAPIService: PassportAPIService
-    private let selectedOperatorId: String
+    private let selectedOperator: Operator
+    private let apiServiceManager: APIServiceManager
     private let selectedZone: Zone?
     
     var searchMode: SearchMode = .zoneBased
@@ -29,14 +29,22 @@ class ParkingRightListViewModel {
     var vehiclePlate: String = ""
     var vehicleState: String = ""
 
-    init(passportAPIService: PassportAPIService, op: String, z: Zone?) {
-        self.passportAPIService = passportAPIService
-        self.selectedOperatorId = op
-        self.selectedZone = z
+    init(apiServiceManager: APIServiceManager, forOperator selectedOperator: Operator, zone: Zone?) {
+        self.apiServiceManager = apiServiceManager
+        self.selectedOperator = selectedOperator
+        self.selectedZone = zone
         // Set default search mode based on whether zone is provided
-        if z == nil {
+        if zone == nil {
             self.searchMode = .spaceVehicleBased
         }
+    }
+    
+    private var passportAPIService: PassportAPIService? {
+        return apiServiceManager.service(forOperator: selectedOperator)
+    }
+    
+    private var selectedOperatorId: String {
+        return selectedOperator.id
     }
     
     var filteredRights: [ParkingRight] {
@@ -79,6 +87,14 @@ class ParkingRightListViewModel {
             do {
                 let fetchedRights: [ParkingRight]
                 
+                guard let service = passportAPIService else {
+                    await MainActor.run {
+                        rightsError = "API service not available for this environment. Please configure credentials in Settings."
+                        isLoadingRights = false
+                    }
+                    return
+                }
+                
                 switch searchMode {
                 case .zoneBased:
                     guard let zone = selectedZone else {
@@ -90,7 +106,7 @@ class ParkingRightListViewModel {
                     }
                     print("🚗 Starting to load parking rights for zone: \(zone.name) (ID: \(zone.id))")
                     print("🚗 Calling API service to fetch parking rights...")
-                    fetchedRights = try await passportAPIService.fetchParkingRights(
+                    fetchedRights = try await service.fetchParkingRights(
                         forOperatorId: selectedOperatorId,
                         zoneId: zone.id
                     )
@@ -107,7 +123,7 @@ class ParkingRightListViewModel {
                     print("🚗 Starting to load parking rights for operator: \(selectedOperatorId)")
                     print("🚗 Search criteria - Space: \(spaceNumber), Plate: \(vehiclePlate), State: \(vehicleState)")
                     print("🚗 Calling API service to fetch parking rights...")
-                    fetchedRights = try await passportAPIService.fetchParkingRights(
+                    fetchedRights = try await service.fetchParkingRights(
                         forOperatorId: selectedOperatorId,
                         zoneId: nil,
                         spaceNumber: spaceNumber.trimmingCharacters(in: .whitespaces).isEmpty ? nil : spaceNumber,

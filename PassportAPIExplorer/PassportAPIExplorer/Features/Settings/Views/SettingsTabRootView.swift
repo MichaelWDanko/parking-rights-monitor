@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct SettingsTabRootView: View {
-    @EnvironmentObject var passportAPIService: PassportAPIService
+    @EnvironmentObject var apiServiceManager: APIServiceManager
     @AppStorage("selectedThemeMode") private var selectedThemeMode: ThemeMode = .auto
     @Environment(\.colorScheme) var colorScheme
     @State private var showingThemeSettings = false
@@ -30,6 +30,27 @@ struct SettingsTabRootView: View {
                         }
                     }
                     .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
+                }
+                .listRowBackground(Color.adaptiveGlassBackground(colorScheme == .dark))
+                
+                Section("Configuration") {
+                    NavigationLink(destination: APICredentialsView(apiServiceManager: apiServiceManager)) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "key.fill")
+                                .foregroundColor(Color.adaptiveCyanAccent(colorScheme == .dark))
+                                .font(.title3)
+                            
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("API Credentials")
+                                    .font(.headline)
+                                    .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
+                                Text("Manage credentials for each environment")
+                                    .font(.caption)
+                                    .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
                 }
                 .listRowBackground(Color.adaptiveGlassBackground(colorScheme == .dark))
                 
@@ -72,7 +93,7 @@ struct SettingsTabRootView: View {
                         Text("Version")
                             .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
                         Spacer()
-                        Text("1.0.0")
+                        Text("2.0.0")
                             .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                     }
                 }
@@ -90,16 +111,9 @@ struct SettingsTabRootView: View {
 }
 
 #Preview {
-    // Create a mock service for preview
-    let config = OAuthConfiguration(
-        tokenURL: URL(string: "https://api.us.passportinc.com/v3/shared/access-tokens")!,
-        client_id: "test",
-        client_secret: "test",
-        audience: "public.api.passportinc.com",
-        clientTraceId: "preview"
-    )
-    let passportAPIService = PassportAPIService(config: config)
+    // Create a mock service manager for preview
+    let apiServiceManager = APIServiceManager(clientTraceId: "preview")
     
     return SettingsTabRootView()
-        .environmentObject(passportAPIService)
+        .environmentObject(apiServiceManager)
 }

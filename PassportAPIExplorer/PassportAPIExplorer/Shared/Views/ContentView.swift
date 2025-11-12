@@ -9,14 +9,14 @@ import SwiftUI
 import SwiftData
 
 /// Root content view with tab navigation.
-/// Provides access to PassportAPIService via @EnvironmentObject (dependency injection).
+/// Provides access to APIServiceManager via @EnvironmentObject (dependency injection).
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.colorScheme) var colorScheme
     @State private var selection: String? = nil
     @AppStorage("selectedThemeMode") private var selectedThemeMode: ThemeMode = .auto
-    /// Injected API service from PassportAPIExplorerApp (dependency injection pattern)
-    @EnvironmentObject var passportAPIService: PassportAPIService
+    /// Injected API service manager from PassportAPIExplorerApp (dependency injection pattern)
+    @EnvironmentObject var apiServiceManager: APIServiceManager
     /// Drawer view model for operator selection
     @StateObject private var drawerViewModel = OperatorDrawerViewModel()
 
@@ -24,31 +24,17 @@ struct ContentView: View {
         TabView {
             Group {
                 if UIDevice.current.userInterfaceIdiom == .phone {
-                    // iPhone: Custom Drawer
-                    OperatorDrawer(viewModel: drawerViewModel) {
-                        NavigationStack {
-                            if let selectedOperator = drawerViewModel.selectedOperator {
-                                OperatorZoneView(selectedOperator: selectedOperator)
-                            } else {
-                                // Empty view that auto-opens drawer
-                                Color.clear
-                                    .adaptiveGlassmorphismBackground()
-                                    .onAppear {
-                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                                            drawerViewModel.openDrawer()
-                                        }
-                                    }
-                            }
-                        }
+                    // iPhone: Unified operator and zone view
+                    NavigationStack {
+                        OperatorAndZoneView()
                     }
-                    .environmentObject(drawerViewModel)
                 } else {
                     // iPad/Mac: NavigationSplitView
                     NavigationSplitView {
                         OperatorSelectionView()
                     } detail: {
                         if let selectedOperator = drawerViewModel.selectedOperator {
-                            OperatorZoneView(selectedOperator: selectedOperator)
+                            OperatorZoneView(selectedOperator: selectedOperator, drawerViewModel: nil)
                         } else {
                             VStack(spacing: 20) {
                                 Image(systemName: "building.2")
@@ -91,6 +77,6 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
-        .environmentObject(PreviewEnvironment.makePreviewService())
+        .environmentObject(APIServiceManager(clientTraceId: "preview"))
         .modelContainer(for: Operator.self, inMemory: true)
 }

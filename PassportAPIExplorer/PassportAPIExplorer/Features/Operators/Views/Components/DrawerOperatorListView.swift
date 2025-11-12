@@ -73,7 +73,7 @@ struct DrawerOperatorListView: View {
                     LazyVStack(spacing: 8) {
                         ForEach(operators) { op in
                             DrawerOperatorCardView(
-                                operator: op,
+                                op: op,
                                 isSelected: drawerViewModel.selectedOperator?.id == op.id,
                                 colorScheme: colorScheme
                             )
@@ -95,7 +95,7 @@ struct DrawerOperatorListView: View {
 
 /// Individual operator card for the drawer
 struct DrawerOperatorCardView: View {
-    let `operator`: Operator
+    let op: Operator
     let isSelected: Bool
     let colorScheme: ColorScheme
     
@@ -110,11 +110,11 @@ struct DrawerOperatorCardView: View {
                 }
                 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(`operator`.name)
+                    Text(op.name)
                         .font(.headline)
                         .foregroundColor(Color.adaptiveTextPrimary(colorScheme == .dark))
                     
-                    Text("ID: \(`operator`.id)")
+                    Text("ID: \(op.id)")
                         .font(.caption)
                         .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))
                         .lineLimit(1)
@@ -123,11 +123,11 @@ struct DrawerOperatorCardView: View {
                 Spacer()
                 
                 // Environment badge
-                Text(`operator`.environment?.rawValue.capitalized ?? "Unknown")
+                Text(op.environment?.rawValue.capitalized ?? "Unknown")
                     .font(.caption)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
-                    .background(environmentColor(for: `operator`.environment ?? .production))
+                    .background(environmentColor(for: op.environment ?? .production))
                     .foregroundColor(.white)
                     .cornerRadius(8)
             }

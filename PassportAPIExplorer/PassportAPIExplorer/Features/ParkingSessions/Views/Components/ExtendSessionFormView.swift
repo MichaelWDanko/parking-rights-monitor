@@ -72,10 +72,10 @@ struct ExtendSessionFormView: View {
         for: ParkingSession.self, Operator.self,
         configurations: ModelConfiguration(isStoredInMemoryOnly: true)
     )
-    let service = PreviewEnvironment.makePreviewService()
+    let apiServiceManager = PreviewEnvironment.makePreviewAPIServiceManager()
     let listVM = ParkingSessionsListViewModel(modelContext: container.mainContext)
-    let publisher = ParkingSessionEventPublisherViewModel(apiService: service, listViewModel: listVM)
-    let formVM = ParkingSessionEventFormViewModel(apiService: service, eventPublisher: publisher)
+    let publisher = ParkingSessionEventPublisherViewModel(apiServiceManager: apiServiceManager, listViewModel: listVM)
+    let formVM = ParkingSessionEventFormViewModel(apiServiceManager: apiServiceManager, eventPublisher: publisher)
     
     NavigationStack {
         ExtendSessionFormView(session: mockSession, formViewModel: formVM)

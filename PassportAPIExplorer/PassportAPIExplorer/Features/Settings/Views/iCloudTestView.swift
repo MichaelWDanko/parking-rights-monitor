@@ -151,22 +151,22 @@ struct iCloudTestView: View {
         }
     }
     
-    private func editOperator(_ operator: Operator) {
-        editedName = `operator`.name
-        editingOperator = `operator`
+    private func editOperator(_ op: Operator) {
+        editedName = op.name
+        editingOperator = op
     }
     
-    private func saveEditedOperator(_ operator: Operator) {
+    private func saveEditedOperator(_ op: Operator) {
         let trimmedName = editedName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedName.isEmpty else { return }
         
         print("✏️ [EDIT] Updating operator")
-        print("   [EDIT] Old name: '\(`operator`.name)'")
+        print("   [EDIT] Old name: '\(op.name)'")
         print("   [EDIT] New name: '\(trimmedName)'")
-        print("   [EDIT] ID: \(`operator`.id)")
+        print("   [EDIT] ID: \(op.id)")
         print("📅 [EDIT] Time: \(Date())")
         
-        `operator`.name = trimmedName
+        op.name = trimmedName
         do {
             try modelContext.save()
             print("✅ [EDIT] Operator updated successfully")
@@ -179,13 +179,13 @@ struct iCloudTestView: View {
         }
     }
     
-    private func deleteOperator(_ operator: Operator) {
+    private func deleteOperator(_ op: Operator) {
         print("🗑️ [DELETE] Deleting operator")
-        print("   [DELETE] Name: '\(`operator`.name)'")
-        print("   [DELETE] ID: \(`operator`.id)")
+        print("   [DELETE] Name: '\(op.name)'")
+        print("   [DELETE] ID: \(op.id)")
         print("📅 [DELETE] Time: \(Date())")
         
-        modelContext.delete(`operator`)
+        modelContext.delete(op)
         do {
             try modelContext.save()
             print("✅ [DELETE] Operator deleted successfully")
