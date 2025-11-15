@@ -1,0 +1,33 @@
+{
+  "fill" : {
+    "linear-gradient" : [
+      "display-p3:0.26275,0.38039,0.93333,1.00000",
+      "display-p3:0.03922,0.06667,0.19608,1.00000"
+    ]
+  },
+  "groups" : [
+    {
+      "layers" : [
+        {
+          "glass" : false,
+          "image-name" : "design-a-geometric-icon-of-mjolnir-for-a-company-b.png",
+          "name" : "design-a-geometric-icon-of-mjolnir-for-a-company-b"
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.5
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "circles" : [
+      "watchOS"
+    ],
+    "squares" : "shared"
+  }
+}
