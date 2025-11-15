@@ -42,7 +42,8 @@ struct EditOperatorView: View {
                     }
                     .listRowBackground(Color.glassBackground)
                     
-                    Section(footer: Text("The operator ID is the UUID that will be passed to your API. Changes will be saved locally and synced to iCloud if enabled.").foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))) {
+                    Section(footer: Text("The operator ID is the UUID that will be passed to the API. The saved operator will be saved locally and synced via iCloud if enabled.")
+                        .foregroundColor(Color.adaptiveTextSecondary(colorScheme == .dark))) {
                         EmptyView()
                     }
                     .listRowBackground(Color.glassBackground)
